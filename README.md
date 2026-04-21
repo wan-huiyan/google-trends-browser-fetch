@@ -51,10 +51,44 @@ git clone https://github.com/wan-huiyan/google-trends-browser-fetch.git \
 
 ### Cursor / other IDEs
 
+Cursor doesn't have Anthropic's Claude-in-Chrome extension, but a generic browser MCP fills the gap. Full setup in ~5 minutes:
+
+**1. Clone the skill:**
 ```bash
 git clone https://github.com/wan-huiyan/google-trends-browser-fetch.git \
   ~/.cursor/skills/google-trends-browser-fetch
 ```
+
+**2. Install a browser MCP** (pick one):
+
+- **Recommended: [Browser MCP](https://browsermcp.io/)** — uses your signed-in Chrome session, so Google Trends rate limits don't bite on multi-chunk fetches.
+  1. Install the [Browser MCP Chrome extension](https://chromewebstore.google.com/detail/browser-mcp-automate-your/bjfgambnhccakkhmkepdoekmckoijdlc)
+  2. Add to `.cursor/mcp.json` (or via `Cursor Settings → Tools → New MCP Server`):
+     ```json
+     {
+       "mcpServers": {
+         "browsermcp": {
+           "command": "npx",
+           "args": ["@browsermcp/mcp@latest"]
+         }
+       }
+     }
+     ```
+  3. Open the extension popup → click **Connect** once to bind it to the MCP server.
+
+- **Alternative: [chrome-devtools-mcp](https://github.com/ChromeDevTools/chrome-devtools-mcp)** — no extension required (launches its own Chrome via Puppeteer). Anonymous session means you'll hit Trends rate limits faster on 5+ chunk fetches. Config:
+   ```json
+   {
+     "mcpServers": {
+       "chrome-devtools": {
+         "command": "npx",
+         "args": ["-y", "chrome-devtools-mcp@latest"]
+       }
+     }
+   }
+   ```
+
+**3. Restart Cursor** and ask it to fetch Trends data — it'll pick up the skill and drive the browser through whichever MCP you installed. The stitching scripts (`plan_chunks.py`, `stitch_daily.py`) are pure Python and work identically regardless of which browser-automation path you chose.
 
 ## Compatibility
 

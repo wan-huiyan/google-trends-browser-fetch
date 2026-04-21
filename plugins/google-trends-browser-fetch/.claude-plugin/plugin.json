@@ -1,0 +1,18 @@
+{
+  "name": "google-trends-browser-fetch",
+  "description": "Fetch Google Trends (search interest over time) via Claude-in-Chrome or other browser-MCP automation, including the multi-chunk daily-resolution stitching trick for date ranges longer than 90 days. Replaces the archived pytrends workflow.",
+  "version": "1.0.0",
+  "author": { "name": "Huiyan Wan" },
+  "repository": "https://github.com/wan-huiyan/google-trends-browser-fetch",
+  "license": "MIT",
+  "keywords": [
+    "claude-code",
+    "claude-code-skill",
+    "google-trends",
+    "browser-automation",
+    "time-series",
+    "causal-inference",
+    "bsts",
+    "data-fetching"
+  ]
+}

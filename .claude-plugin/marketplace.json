@@ -1,0 +1,12 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "wan-huiyan-google-trends-browser-fetch",
+  "description": "Fetch Google Trends data via browser automation, with daily-resolution multi-chunk stitching",
+  "owner": { "name": "Huiyan Wan" },
+  "plugins": [{
+    "name": "google-trends-browser-fetch",
+    "source": "./plugins/google-trends-browser-fetch",
+    "description": "Fetch Google Trends via browser automation with chunk-and-stitch for daily resolution beyond 90 days",
+    "version": "1.0.0"
+  }]
+}

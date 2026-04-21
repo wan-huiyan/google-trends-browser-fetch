@@ -55,6 +55,9 @@ Always works as a fallback. The human navigates + clicks CSV download themselves
 
 - Chrome signed into a Google account. Trends is public, but anonymous sessions rate-limit faster on multi-chunk fetches.
 - User knows their browser's Downloads folder (default `~/Downloads/`). Files land as `multiTimeline.csv`, `multiTimeline (1).csv`, etc.
+- **Allow multiple downloads from `trends.google.com`.** Chrome blocks the 2nd download onward from the same site by default. Without this, only the first chunk arrives and the rest silently fail. One-time fix:
+  - **Global setting**: Chrome → `Settings → Privacy and security → Site settings → Additional permissions → Automatic downloads → "Sites can ask to automatically download multiple files"`
+  - **Per-site allowlist** (tighter): the first time Chrome blocks a download you'll see a small icon in the URL bar — click it and choose "Always allow trends.google.com to download multiple files"
 - Python 3.9+ with pandas and numpy for the stitching step.
 
 ## Decision: weekly vs daily
@@ -181,6 +184,7 @@ Minimum required fields:
 5. **Don't interpret a weekly-interpolated-to-daily signal as true daily data.** It has autocorrelation ~0.99 (flat within each week) and adds nothing to a model that already has weekly seasonality.
 6. **Don't rely on clicking the page-wide download menu.** Click the CSV icon on the specific "Interest over time" card; the page-wide menu exports a multi-sheet zip that's harder to parse.
 7. **Rate limiting is real and gets worse with anonymous sessions.** Sign in first; space downloads; retry on failure.
+8. **Chrome blocks multiple downloads from the same site by default.** If only the first chunk arrives and later ones silently fail with no error, check Chrome's automatic-downloads setting (see prerequisites). This is the single most common first-run failure mode.
 
 ## Bundled resources
 

@@ -21,6 +21,16 @@ Two facts that aren't obvious until you hit them:
 
 This skill codifies both: the browser workflow (with three compatibility paths) and the stitching algorithm.
 
+## ⚠️ One-time Chrome setup before first multi-chunk fetch
+
+Chrome blocks the 2nd download from a site by default. Without this change, only the first chunk arrives and the rest silently fail. Flip this once:
+
+**Chrome → Settings → Privacy and security → Site settings → Additional permissions → Automatic downloads →** select **"Sites can ask to automatically download multiple files"**.
+
+Or, tighter: the first time Chrome blocks a download you'll see a small icon in the URL bar — click it and choose "Always allow trends.google.com to download multiple files".
+
+This applies to all three compatibility paths below.
+
 ## Quick start
 
 ```

@@ -68,6 +68,26 @@ Browser automation has environmental constraints. The skill supports three paths
 
 The stitching + chunking logic is universal; only the navigate/click calls differ. See [SKILL.md](plugins/google-trends-browser-fetch/SKILL.md) for each path's exact setup.
 
+<details>
+<summary><strong>Can I use this with my setup?</strong> (API keys, Bedrock/Vertex, Cursor — verified April 2026)</summary>
+
+The Anthropic-first-party "Claude in Chrome" extension has specific gating. If you hit a "not available" message, check the table below — then fall back to Path B (Browser MCP / chrome-devtools-mcp) which covers the gaps.
+
+| Your setup | Claude-in-Chrome? | What to use |
+|---|---|---|
+| Claude Code **CLI** (`claude --chrome`) + Pro/Max/Team/Enterprise plan | ✅ Yes — primary documented path | Path A |
+| Claude Code **VS Code extension** + paid plan | ✅ Yes | Path A |
+| Claude **desktop app** + paid plan | ✅ Yes (⚠️ [known conflict](https://github.com/anthropics/claude-code/issues/46869): if desktop + CLI both registered, desktop wins and CLI errors "extension not connected") | Path A |
+| **Cursor / Windsurf / other IDEs** | ❌ No — Anthropic-specific extension | Path B (Browser MCP / chrome-devtools-mcp) |
+| **Anthropic API key / console credits / pay-as-you-go** | ❌ Explicitly excluded from Claude-in-Chrome | Path B |
+| **Bedrock / Vertex AI / Microsoft Foundry** | ❌ Explicitly excluded — [need separate claude.ai account](https://code.claude.com/docs/en/chrome) | Path B or separate claude.ai account |
+| **Brave / Arc / other Chromium** browsers | ❌ Only Chrome + Edge supported | Path C (manual) or install Chrome |
+| **WSL** (Windows Subsystem for Linux) | ❌ Not supported | Path C (manual) |
+
+Sources: [Claude Code Chrome docs](https://code.claude.com/docs/en/chrome), [claude.com/claude-for-chrome](https://claude.com/claude-for-chrome). Requirements verified April 2026 — check the official docs for the current state before assuming.
+
+</details>
+
 ## What you get
 
 - **`scripts/plan_chunks.py`** — generates overlapping chunk date ranges + parameterised Trends URLs. Example: `--start 2024-09-29 --end 2026-03-15 --chunk-days 75 --overlap-days 15` → 9 chunks covering 18 months.

@@ -1,0 +1,15 @@
+__pycache__
+*.pyc
+.venv
+venv
+.git
+*.md
+.env
+.env.*
+!.env.example
+
+chunks/
+chunks.json
+*.csv
+run.log
+stitch_quality.json

@@ -135,6 +135,8 @@ Sources: [Claude Code Chrome docs](https://code.claude.com/docs/en/chrome), [cla
 
 ## Production deployment (Path D): Cloud Run + Cloud Scheduler
 
+> **Huge shoutout to [@kate-wheatley](https://github.com/kate-wheatley)**, who designed and built this entire path in [PR #1](https://github.com/wan-huiyan/google-trends-browser-fetch/pull/1) — promoting the skill from a one-off interactive workflow into a hands-off scheduled production pipeline. The 13-file service below is hers end to end: container, HTTP entrypoint, BQ upsert design, scheduling pattern, and all the env-driven configuration plumbing.
+
 For unattended, scheduled scraping, the [`cloud-run-google-trends-scraper/`](cloud-run-google-trends-scraper/) directory ships a Cloud Run service that runs the same chunking + stitching pipeline inside a container with headless Playwright, then upserts results into BigQuery. Designed for one query term per invocation (matching the one-`q`-per-URL rule the skill enforces interactively).
 
 **What it gives you:**
@@ -161,6 +163,14 @@ gcloud run deploy google-trends-scraper \
 Then create one Cloud Scheduler job per term, with HTTP target = the service URL and a custom header `X-Trends-Query-Term: <your term>`.
 
 **When to use Path D vs Paths A–C:** use D when you need recurring data (e.g. nightly refresh into a warehouse for a BSTS pipeline). Use A–C for one-off interactive analysis where you want to inspect each step.
+
+**Design highlights worth calling out** (all credit to [@kate-wheatley](https://github.com/kate-wheatley)):
+
+- **Idempotent incremental refresh** — `daily` mode never wipes history; it computes a rolling lookback window long enough to satisfy the stitching algorithm's overlap requirements, then upserts only new days into BigQuery. This is the right primitive for a scheduled pipeline and is genuinely tricky to get right with chunked, normalised data.
+- **First-seen-term auto-backfill** — when a brand-new term appears in `TRENDS_TERMS` and has no rows in BQ, the service silently widens *that term's* window to a full historical backfill from `TRENDS_WEEKLY_START`, while existing terms stay on the cheap rolling lookback. New terms join the dataset without operator intervention.
+- **One-term-per-invocation, scheduler-friendly** — the per-request `X-Trends-Query-Term` header (with case-insensitive fallback aliases) lets a single Cloud Run service back N independent Cloud Scheduler jobs (one per term) with `concurrency=1` so per-request env overrides can't race.
+- **Dual table-id resolution** — every BQ table env var accepts either a fully-qualified `project.dataset.table` or a bare table id that combines with `PROJECT_ID` + `DATASET_ID`, so the same image works across dev/prod without rewrites.
+- **Pluggable weekly reference** — `STITCH_WEEKLY_REF_SOURCE=bq` lets the calibration step reuse a previously-loaded weekly table instead of re-downloading, reducing Trends rate-limit exposure on every run.
 
 ## What you get
 
@@ -240,7 +250,7 @@ Then create one Cloud Scheduler job per term, with HTTP target = the service URL
 
 ## Version history
 
-- **v1.1.0** (2026-04-30) — added Path D: Cloud Run + Cloud Scheduler deployment under `cloud-run-google-trends-scraper/` with `full` and `daily` modes, BigQuery upsert sinks, and per-term scheduling via custom header. Contributed by [@kate-wheatley](https://github.com/kate-wheatley) ([#1](https://github.com/wan-huiyan/google-trends-browser-fetch/pull/1)).
+- **v1.1.0** (2026-04-30) — **major new capability: production deployment via Cloud Run + Cloud Scheduler**, designed and built end-to-end by [@kate-wheatley](https://github.com/kate-wheatley) ([#1](https://github.com/wan-huiyan/google-trends-browser-fetch/pull/1) — 13 files, ~2.9k lines). Adds the `cloud-run-google-trends-scraper/` service: containerised headless-Playwright pipeline, HTTP entrypoint via Functions Framework, `full` (date-range refresh) and `daily` (rolling-lookback incremental upsert) modes, BigQuery sinks for daily / weekly-reference / stitching-quality with auto-backfill for first-seen terms, scheduler-friendly per-term invocation via `X-Trends-Query-Term` header, dual table-id resolution, optional GCS artifact archival, and a pluggable BQ-or-CSV weekly reference. Promotes the skill from interactive one-off use to a hands-off scheduled production pipeline.
 - **v1.0.0** (2026-04-21) — initial release. Three compatibility paths, 5 files, synthetic-demo screenshot, anonymised from a real 9-chunk 18-month UK retail project.
 
 ## License

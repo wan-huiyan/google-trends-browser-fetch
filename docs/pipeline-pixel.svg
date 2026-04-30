@@ -106,7 +106,7 @@
   <!-- Kate banner background -->
   <rect x="40" y="220" width="840" height="42" fill="#FDE6F0" stroke="#E36AA8" stroke-width="2" rx="10"/>
   <text x="60" y="246" font-size="12" font-weight="bold" fill="#C73E80">✦ PATH D · scheduled production · added by @kate-wheatley ✦</text>
-  <text x="700" y="246" font-size="10" fill="#C73E80" font-style="italic">(13 files · ~2.9k lines · idempotent BQ upsert)</text>
+  <text x="860" y="246" text-anchor="end" font-size="10" fill="#C73E80" font-style="italic">(13 files · ~2.9k lines)</text>
 
   <!-- Scheduler clock -->
   <g transform="translate(70,280)">
@@ -114,7 +114,6 @@
     <rect x="26" y="14" width="4" height="14" fill="#E36AA8"/>
     <rect x="26" y="26" width="18" height="4" fill="#E36AA8"/>
     <circle cx="28" cy="28" r="2" fill="#E36AA8"/>
-    <text x="28" y="6" text-anchor="middle" font-size="8" fill="#888">every night</text>
   </g>
   <text x="98" y="360" text-anchor="middle" font-size="11" fill="#444">Cloud Scheduler</text>
   <text x="98" y="374" text-anchor="middle" font-size="9" fill="#888">one job per term</text>

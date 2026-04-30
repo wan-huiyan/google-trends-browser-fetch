@@ -6,3 +6,10 @@ venv
 *.md
 .env
 .env.*
+!.env.example
+
+chunks/
+chunks.json
+*.csv
+run.log
+stitch_quality.json

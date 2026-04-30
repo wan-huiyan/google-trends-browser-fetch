@@ -51,6 +51,8 @@ Claude: (invokes google-trends-browser-fetch)
 
 ## Installation
 
+These steps cover **Path 1** (interactive). For **Path 2** (scheduled, headless), see the [`gcloud run deploy` snippet](#path-2-scheduled-production-cloud-run--cloud-scheduler) in the Path 2 section.
+
 ### Claude Code
 
 ```bash
@@ -176,21 +178,34 @@ Then create one Cloud Scheduler job per term, with HTTP target = the service URL
 
 ## What you get
 
+**Path 1 — interactive scripts and references:**
+
 - **`scripts/plan_chunks.py`** — generates overlapping chunk date ranges + parameterised Trends URLs. Example: `--start 2024-09-29 --end 2026-03-15 --chunk-days 75 --overlap-days 15` → 9 chunks covering 18 months.
 - **`scripts/stitch_daily.py`** — chain-median-ratio cross-normalisation on overlaps, then a global scalar calibration against a weekly reference. Reports per-term stability and daily-vs-weekly correlation.
 - **`references/stitching-math.md`** — the why behind median-ratio (vs OLS, mean ratio, max ratio).
 - **`references/provenance-template.md`** — companion `.provenance.md` template so every downloaded CSV has traceable origin.
 - **`references/url-examples.md`** — the `date` / `geo` / `q` / `hl` parameter cookbook.
 
+**Path 2 — Cloud Run service** (under [`cloud-run-google-trends-scraper/`](cloud-run-google-trends-scraper/), all by [@kate-wheatley](https://github.com/kate-wheatley)):
+
+- **`main.py`** — Functions Framework HTTP entrypoint (`run_trends_job`); parses env / headers, dispatches per-term pipeline runs, drives `full` vs `daily` modes, handles GCS artifact upload.
+- **`fetch_playwright.py`** — headless Playwright driver that navigates Trends, plans clicks, downloads chunk CSVs, retries on rate-limit / captcha, and persists each download with provenance.
+- **`plan_chunks.py`** / **`stitch_daily.py`** — same chunking + stitching algorithm as Path 1, vendored into the container so the image is self-contained.
+- **`bq_reference_weekly.py`** — loads / refreshes the weekly-reference table in BigQuery; supports the `STITCH_WEEKLY_REF_SOURCE=bq` calibration mode so subsequent runs don't have to re-download it.
+- **`bq_run_outputs.py`** — idempotent upsert of `trends_daily` and `stitch_quality` into BigQuery; auto-creates tables on first run, never wipes history.
+- **`terms_input.py`** — resolves `TRENDS_TERMS` (CSV string or JSON array) and per-request `X-Trends-Query-Term` header; enforces one-`q`-per-URL.
+- **`Dockerfile`**, **`requirements.txt`**, **`project.toml`**, **`.env.example`**, **`.dockerignore`** — container build, deps, Functions Framework manifest, full env reference, and a sane ignore list for source uploads.
+
 ## With skill vs without
 
 | | Without | With |
 |---|---|---|
-| Time budget | Several hours (figure out that pytrends is dead, discover the 90-day cutoff, re-download after realising you have weekly not daily) | 10–15 minutes |
+| Time budget (one-off) | Several hours (figure out that pytrends is dead, discover the 90-day cutoff, re-download after realising you have weekly not daily) | 10–15 minutes |
 | Chunk planning | Hand-roll date math, inevitably wrong overlap | `plan_chunks.py` |
 | Cross-chunk scale | Naïve concat → stair-steps → silent model bias | Median-ratio stitch + weekly calibration |
 | Provenance | Forgotten; someone else inherits and can't reproduce | `.provenance.md` with URL + method + chunk map |
 | Quality check | Eyeball the plot | Quantitative: stitching std, daily-weekly r, calibration scalar |
+| Recurring refresh into a warehouse | Cron + babysit a laptop + manual BQ reconcile (or: just rebuild from scratch every week) | Cloud Scheduler → Cloud Run → idempotent BQ upsert; first-seen terms auto-backfill; never wipes history |
 
 ## How it works
 
@@ -201,6 +216,8 @@ Then create one Cloud Scheduler job per term, with HTTP target = the service URL
 5. **Stitch** — chain-compose median ratios across overlaps so every chunk lives on chunk 0's scale; merge with mean on overlap days.
 6. **Calibrate** — compute `scalar = median(weekly_ref / stitched.resample("W").mean())` per term; apply.
 7. **Sanity-check** — per-term ratio std < 0.15, daily-weekly r in 0.5–0.8, visual join inspection.
+
+In **Path 2**, steps 2–7 run inside a Cloud Run container per Cloud Scheduler invocation; step 7's output is then upserted into BigQuery instead of written to a local CSV. The `daily` mode short-circuits the chunk plan to a rolling lookback window so each scheduled run only fetches new days, not the full history.
 
 ## Design decisions
 
@@ -216,6 +233,7 @@ Then create one Cloud Scheduler job per term, with HTTP target = the service URL
 - Does NOT replace official Google Trends API when you have access to it. If your org has it, use it.
 - Does NOT work with mobile-only browsers or headless scripts at scale (Trends detects and blocks).
 - Does NOT auto-recover from Google UI redesigns. The CSV button location is stable enough that `javascript_tool` fallback finds it by aria-label / SVG icon, but major redesigns may require the skill to be updated.
+- **Path 2 specifically**: headless Cloud Run runs an anonymous Trends session, so expect more captchas / rate limits than a signed-in laptop session. Cookie injection is possible (mount a Google session into the container) but is not wired up out of the box — for high-volume term lists, plan around per-term rate limits rather than parallelism.
 
 ## Pitfalls to avoid
 
@@ -227,17 +245,35 @@ Then create one Cloud Scheduler job per term, with HTTP target = the service URL
 
 ## Related skills
 
-- **[causal-impact-campaign](https://github.com/wan-huiyan/causal-impact-campaign)** — BSTS-based causal impact estimation; Google Trends is a common covariate.
-- **[external-data-scout](https://github.com/wan-huiyan/external-data-scout)** — broader cataloging of open/paid external data sources, of which Trends is one.
-- **[data-provenance-verifier](https://github.com/wan-huiyan/data-provenance-verifier)** — verify that data files (including Trends CSVs) match their claimed source.
+- **[causal-impact-campaign](https://github.com/wan-huiyan/causal-impact-campaign)** — BSTS-based causal impact estimation; Trends daily series is the canonical exogenous covariate for this skill's models. Direct downstream consumer.
+- **[gcp-cloud-run](https://github.com/wan-huiyan/gcp-cloud-run)** — production Cloud Run patterns (Functions Framework, buildpack source layouts, concurrency, IAM). Useful background for understanding or extending Path 2.
+- **[gcp-pipeline-cost-analysis](https://github.com/wan-huiyan/gcp-pipeline-cost-analysis)** — estimate monthly GCP spend before turning on Path 2 at scale (Cloud Run invocations × Playwright cold-starts × BQ storage).
 
 ## Dependencies
 
+**Shared (both paths):**
+
 | | Required? | If missing |
 |---|---|---|
-| A browser-automation path (attended Chrome via Claude-in-Chrome / MCP / local Playwright, OR headless Cloud Run) | One required | Can't fetch — but skill explains the alternatives |
-| Python 3.9+ with pandas and numpy | Yes, for stitching | Weekly single-download still works; daily stitched does not |
-| Chrome or Edge signed into Google | Strongly recommended | Anonymous sessions rate-limit faster; not a hard block |
+| Python 3.9+ with pandas + numpy | Yes, for stitching | Weekly single-download still works; daily stitched does not |
+| One run mode (Path 1 attended Chrome, OR Path 2 Cloud Run) | One required | Can't fetch — pick whichever fits your workflow |
+
+**Path 1 — interactive (attended Chrome):**
+
+| | Required? | If missing |
+|---|---|---|
+| Local Chrome or Edge | Yes | Brave/Arc/Firefox not supported by Claude-in-Chrome; fall back to a local Playwright script |
+| A driver: Claude-in-Chrome / Browser MCP / chrome-devtools-mcp / local Playwright | One required | See the [within-Path-1 driver table](#compatibility) above |
+| Signed-in Google account in the browser | Strongly recommended | Anonymous sessions rate-limit faster |
+
+**Path 2 — scheduled (headless Cloud Run):**
+
+| | Required? | If missing |
+|---|---|---|
+| GCP project with Cloud Run + Cloud Scheduler enabled | Yes | Path 2 won't deploy |
+| BigQuery dataset (one for `weekly_reference`, `trends_daily`, `stitch_quality`) | Yes | Service runs but has nowhere to upsert; tables are auto-created on first run |
+| GCS bucket | Optional | Without it, per-run chunk CSVs and quality JSON aren't archived (the BQ tables still get the final stitched output) |
+| Cookie injection for signed-in headless | Optional | Anonymous container sessions hit rate limits sooner; for high-volume term lists, mount a Google session
 
 <details>
 <summary>Quality checklist (what this skill guarantees)</summary>

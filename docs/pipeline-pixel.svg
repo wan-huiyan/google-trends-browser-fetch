@@ -204,7 +204,7 @@
     <rect x="56" y="28" width="7" height="7" fill="#FFDAB9"/>
     <rect x="56" y="21" width="7" height="7" fill="#FFDAB9"/>
   </g>
-  <text x="798" y="360" text-anchor="middle" font-size="11" fill="#C73E80" font-weight="bold">kate ✨</text>
+  <text x="798" y="360" text-anchor="middle" font-size="11" fill="#C73E80" font-weight="bold">katie ✨</text>
 
   <!-- Sparkles around Kate -->
   <g fill="#FFD700">
@@ -227,5 +227,5 @@
   </g>
 
   <!-- Footer caption -->
-  <text x="460" y="408" text-anchor="middle" font-size="10" fill="#888" font-style="italic">same chunking + stitching algorithm under the hood — kate wrapped it in a server so you never have to click "download" again</text>
+  <text x="460" y="408" text-anchor="middle" font-size="10" fill="#888" font-style="italic">same chunking + stitching algorithm under the hood — katie wrapped it in a server so you never have to click "download" again</text>
 </svg>

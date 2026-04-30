@@ -8,6 +8,10 @@ Fetch Google Trends data via browser automation, with multi-chunk daily-resoluti
 [![python](https://img.shields.io/badge/python-3.9--3.12-yellow)](https://www.python.org/)
 [![Claude Code](https://img.shields.io/badge/Claude_Code-skill-orange)](https://claude.com/claude-code)
 
+![Pipeline overview — interactive Path 1 (attended) and scheduled Path 2 added by @kate-wheatley](docs/pipeline-pixel.svg)
+
+The skill works two ways. **Path 1 — interactive (attended):** you + an LLM + Chrome on your laptop, for one-off analysis. **Path 2 — scheduled (headless):** Cloud Scheduler + Cloud Run + BigQuery, for hands-off nightly refreshes into a warehouse — designed and built by [@kate-wheatley](https://github.com/kate-wheatley).
+
 ![Demo: chunk stitching](docs/demo-stitching.png)
 
 The panel above shows the problem this skill solves. Google Trends normalises every query to 0–100 within its own date range, so downloading overlapping chunks gives you the *same day* at *different values* (top). Naïve concatenation produces stair-step discontinuities that break any downstream model (middle). The skill's median-ratio stitching + weekly calibration produces a continuous daily series anchored to a known reference scale (bottom).
@@ -19,7 +23,7 @@ Two facts that aren't obvious until you hit them:
 1. **`pytrends` is archived.** The community Python library was archived in April 2025 after Google tightened anti-scraping. The official Google Trends API launched July 2025 is gated alpha. For most users, **browser-driven CSV export is the only reliable path** as of April 2026.
 2. **Google Trends silently downgrades to weekly for long ranges.** Anything ≥ 90 days returns weekly. To get daily over, say, 18 months, you have to download overlapping ~75-day chunks and stitch them — which is fiddly because each chunk has its own independent 0–100 normalisation.
 
-This skill codifies both: the browser workflow (with three compatibility paths) and the stitching algorithm.
+This skill codifies both: the browser workflow (interactive on your laptop or headless on Cloud Run) and the stitching algorithm.
 
 ## ⚠️ One-time Chrome setup before first multi-chunk fetch
 
@@ -29,7 +33,7 @@ Chrome blocks the 2nd download from a site by default. Without this change, only
 
 Or, tighter: the first time Chrome blocks a download you'll see a small icon in the URL bar — click it and choose "Always allow trends.google.com to download multiple files".
 
-This applies to all three compatibility paths below.
+This applies to Path 1 (interactive) — Path 2 runs headless in a container and downloads to a writable directory inside the image.
 
 ## Quick start
 
@@ -46,6 +50,8 @@ Claude: (invokes google-trends-browser-fetch)
 ```
 
 ## Installation
+
+These steps cover **Path 1** (interactive). For **Path 2** (scheduled, headless), see the [`gcloud run deploy` snippet](#path-2-scheduled-production-cloud-run--cloud-scheduler) in the Path 2 section.
 
 ### Claude Code
 
@@ -102,37 +108,77 @@ git clone https://github.com/wan-huiyan/google-trends-browser-fetch.git \
 
 ## Compatibility
 
-Browser automation has environmental constraints. The skill supports three paths — pick whichever matches your setup.
+The skill supports two paths. They share the same chunk-planning + median-ratio stitching code under the hood — the difference is whether a human has to be at the laptop.
 
-| Path | Works with | Requires |
+| Path | What it is | When to use |
 |---|---|---|
-| **Claude in Chrome** (Anthropic-first-party) | Claude Code CLI (`claude --chrome`), VS Code ext, Claude desktop app | Pro / Max / Team / Enterprise plan (NOT API credits, NOT Bedrock/Vertex), Chrome or Edge (NOT Brave/Arc), not WSL |
-| **Browser MCP / chrome-devtools-mcp** | Cursor, Windsurf, any MCP host | An MCP server providing navigate/click/eval-JS |
-| **Manual human download** | Anywhere | Nothing — Claude only plans URLs and runs stitching |
+| **1. Interactive (attended)** | A signed-in Chrome session on your laptop, driven by an LLM or a local script. Drivers: Claude-in-Chrome, Browser MCP, chrome-devtools-mcp, or a local Playwright run. | One-off analysis, ad-hoc exploration, when you want to inspect each download. |
+| **2. Scheduled (headless)** | Headless Playwright in a Cloud Run container, triggered per-term by Cloud Scheduler, upserting into BigQuery. No laptop required. | Recurring refresh into a warehouse; production pipelines; nightly dashboards. |
 
-The stitching + chunking logic is universal; only the navigate/click calls differ. See [SKILL.md](plugins/google-trends-browser-fetch/SKILL.md) for each path's exact setup.
+Both modes enforce the same one-`q`-per-URL rule, run the same stitching algorithm, and produce the same calibrated daily output. See [SKILL.md](plugins/google-trends-browser-fetch/SKILL.md) for Path 1 setup and the [Path 2 section below](#path-2-scheduled-production-cloud-run--cloud-scheduler) for the headless Cloud Run service.
 
 <details>
-<summary><strong>Can I use this with my setup?</strong> (API keys, Bedrock/Vertex, Cursor — verified April 2026)</summary>
+<summary><strong>Within Path 1: which driver fits my setup?</strong> (API keys, Bedrock/Vertex, Cursor — verified April 2026)</summary>
 
-The Anthropic-first-party "Claude in Chrome" extension has specific gating. If you hit a "not available" message, check the table below — then fall back to Path B (Browser MCP / chrome-devtools-mcp) which covers the gaps.
+The Anthropic-first-party "Claude in Chrome" extension has specific gating. If you hit a "not available" message, check the table below — then fall back to Browser MCP / chrome-devtools-mcp, which covers the gaps.
 
 | Your setup | Claude-in-Chrome? | What to use |
 |---|---|---|
-| Claude Code **CLI** (`claude --chrome`) + Pro/Max/Team/Enterprise plan | ✅ Yes — primary documented path | Path A |
-| Claude Code **VS Code extension** + paid plan | ✅ Yes | Path A |
-| Claude **desktop app** + paid plan | ✅ Yes (⚠️ [known conflict](https://github.com/anthropics/claude-code/issues/46869): if desktop + CLI both registered, desktop wins and CLI errors "extension not connected") | Path A |
-| **Cursor / Windsurf / other IDEs** | ❌ No — Anthropic-specific extension | Path B (Browser MCP / chrome-devtools-mcp) |
-| **Anthropic API key / console credits / pay-as-you-go** | ❌ Explicitly excluded from Claude-in-Chrome | Path B |
-| **Bedrock / Vertex AI / Microsoft Foundry** | ❌ Explicitly excluded — [need separate claude.ai account](https://code.claude.com/docs/en/chrome) | Path B or separate claude.ai account |
-| **Brave / Arc / other Chromium** browsers | ❌ Only Chrome + Edge supported | Path C (manual) or install Chrome |
-| **WSL** (Windows Subsystem for Linux) | ❌ Not supported | Path C (manual) |
+| Claude Code **CLI** (`claude --chrome`) + Pro/Max/Team/Enterprise plan | ✅ Yes — primary documented path | Claude-in-Chrome |
+| Claude Code **VS Code extension** + paid plan | ✅ Yes | Claude-in-Chrome |
+| Claude **desktop app** + paid plan | ✅ Yes (⚠️ [known conflict](https://github.com/anthropics/claude-code/issues/46869): if desktop + CLI both registered, desktop wins and CLI errors "extension not connected") | Claude-in-Chrome |
+| **Cursor / Windsurf / other IDEs** | ❌ No — Anthropic-specific extension | Browser MCP / chrome-devtools-mcp |
+| **Anthropic API key / console credits / pay-as-you-go** | ❌ Explicitly excluded from Claude-in-Chrome | Browser MCP / chrome-devtools-mcp |
+| **Bedrock / Vertex AI / Microsoft Foundry** | ❌ Explicitly excluded — [need separate claude.ai account](https://code.claude.com/docs/en/chrome) | Browser MCP, or a separate claude.ai account |
+| **Brave / Arc / other Chromium** browsers | ❌ Only Chrome + Edge supported | Install Chrome, or use a local Playwright script |
+| **WSL** (Windows Subsystem for Linux) | ❌ Not supported | Local Playwright script |
 
 Sources: [Claude Code Chrome docs](https://code.claude.com/docs/en/chrome), [claude.com/claude-for-chrome](https://claude.com/claude-for-chrome). Requirements verified April 2026 — check the official docs for the current state before assuming.
 
 </details>
 
+## Path 2: Scheduled production (Cloud Run + Cloud Scheduler)
+
+> **Huge shoutout to [@kate-wheatley](https://github.com/kate-wheatley)**, who designed and built this entire path in [PR #1](https://github.com/wan-huiyan/google-trends-browser-fetch/pull/1) — promoting the skill from a one-off interactive workflow into a hands-off scheduled production pipeline. The 13-file service below is hers end to end: container, HTTP entrypoint, BQ upsert design, scheduling pattern, and all the env-driven configuration plumbing.
+
+For unattended, scheduled scraping, the [`cloud-run-google-trends-scraper/`](cloud-run-google-trends-scraper/) directory ships a Cloud Run service that runs the same chunking + stitching pipeline inside a container with headless Playwright, then upserts results into BigQuery. Designed for one query term per invocation (matching the one-`q`-per-URL rule the skill enforces interactively).
+
+**What it gives you:**
+
+- **HTTP entrypoint** (`run_trends_job`, Functions Framework) — Cloud Scheduler hits the service URL once per term, passing the term in a custom header (`X-Trends-Query-Term`).
+- **Two run modes**:
+  - `full` — explicit `START_DATE` / `END_DATE`, full refresh.
+  - `daily` (alias `incremental`) — rolling lookback ending at `TRENDS_AS_OF_DATE` (or today, UTC). BigQuery upserts new days without wiping history. First-seen terms get auto-backfilled from `TRENDS_WEEKLY_START` for full history.
+- **BigQuery sinks** — weekly reference, daily stitched, and stitching-quality tables (auto-created on first run).
+- **Optional GCS artifacts** — full per-run output (chunk CSVs, stitched daily, quality JSON) under `gs://<bucket>/runs/<RUN_ID>/`.
+- **Per-term parallelism** — run one Cloud Scheduler job per term; recommended `Cloud Run concurrency = 1` so per-request env overrides don't overlap.
+
+**Quick deploy** (full env reference in [`cloud-run-google-trends-scraper/.env.example`](cloud-run-google-trends-scraper/.env.example)):
+
+```bash
+cd cloud-run-google-trends-scraper
+gcloud run deploy google-trends-scraper \
+  --source=. \
+  --region=europe-west2 \
+  --concurrency=1 \
+  --set-env-vars=PROJECT_ID=...,DATASET_ID=google_trends,TRENDS_GEO=GB,TRENDS_HL=en-GB
+```
+
+Then create one Cloud Scheduler job per term, with HTTP target = the service URL and a custom header `X-Trends-Query-Term: <your term>`.
+
+**When to use Path 2 vs Path 1:** use Path 2 when you need recurring data (e.g. nightly refresh into a warehouse for a BSTS pipeline). Use Path 1 for one-off interactive analysis where you want to inspect each step.
+
+**Design highlights worth calling out** (all credit to [@kate-wheatley](https://github.com/kate-wheatley)):
+
+- **Idempotent incremental refresh** — `daily` mode never wipes history; it computes a rolling lookback window long enough to satisfy the stitching algorithm's overlap requirements, then upserts only new days into BigQuery. This is the right primitive for a scheduled pipeline and is genuinely tricky to get right with chunked, normalised data.
+- **First-seen-term auto-backfill** — when a brand-new term appears in `TRENDS_TERMS` and has no rows in BQ, the service silently widens *that term's* window to a full historical backfill from `TRENDS_WEEKLY_START`, while existing terms stay on the cheap rolling lookback. New terms join the dataset without operator intervention.
+- **One-term-per-invocation, scheduler-friendly** — the per-request `X-Trends-Query-Term` header (with case-insensitive fallback aliases) lets a single Cloud Run service back N independent Cloud Scheduler jobs (one per term) with `concurrency=1` so per-request env overrides can't race.
+- **Dual table-id resolution** — every BQ table env var accepts either a fully-qualified `project.dataset.table` or a bare table id that combines with `PROJECT_ID` + `DATASET_ID`, so the same image works across dev/prod without rewrites.
+- **Pluggable weekly reference** — `STITCH_WEEKLY_REF_SOURCE=bq` lets the calibration step reuse a previously-loaded weekly table instead of re-downloading, reducing Trends rate-limit exposure on every run.
+
 ## What you get
+
+**Path 1 — interactive scripts and references:**
 
 - **`scripts/plan_chunks.py`** — generates overlapping chunk date ranges + parameterised Trends URLs. Example: `--start 2024-09-29 --end 2026-03-15 --chunk-days 75 --overlap-days 15` → 9 chunks covering 18 months.
 - **`scripts/stitch_daily.py`** — chain-median-ratio cross-normalisation on overlaps, then a global scalar calibration against a weekly reference. Reports per-term stability and daily-vs-weekly correlation.
@@ -140,15 +186,26 @@ Sources: [Claude Code Chrome docs](https://code.claude.com/docs/en/chrome), [cla
 - **`references/provenance-template.md`** — companion `.provenance.md` template so every downloaded CSV has traceable origin.
 - **`references/url-examples.md`** — the `date` / `geo` / `q` / `hl` parameter cookbook.
 
+**Path 2 — Cloud Run service** (under [`cloud-run-google-trends-scraper/`](cloud-run-google-trends-scraper/), all by [@kate-wheatley](https://github.com/kate-wheatley)):
+
+- **`main.py`** — Functions Framework HTTP entrypoint (`run_trends_job`); parses env / headers, dispatches per-term pipeline runs, drives `full` vs `daily` modes, handles GCS artifact upload.
+- **`fetch_playwright.py`** — headless Playwright driver that navigates Trends, plans clicks, downloads chunk CSVs, retries on rate-limit / captcha, and persists each download with provenance.
+- **`plan_chunks.py`** / **`stitch_daily.py`** — same chunking + stitching algorithm as Path 1, vendored into the container so the image is self-contained.
+- **`bq_reference_weekly.py`** — loads / refreshes the weekly-reference table in BigQuery; supports the `STITCH_WEEKLY_REF_SOURCE=bq` calibration mode so subsequent runs don't have to re-download it.
+- **`bq_run_outputs.py`** — idempotent upsert of `trends_daily` and `stitch_quality` into BigQuery; auto-creates tables on first run, never wipes history.
+- **`terms_input.py`** — resolves `TRENDS_TERMS` (CSV string or JSON array) and per-request `X-Trends-Query-Term` header; enforces one-`q`-per-URL.
+- **`Dockerfile`**, **`requirements.txt`**, **`project.toml`**, **`.env.example`**, **`.dockerignore`** — container build, deps, Functions Framework manifest, full env reference, and a sane ignore list for source uploads.
+
 ## With skill vs without
 
 | | Without | With |
 |---|---|---|
-| Time budget | Several hours (figure out that pytrends is dead, discover the 90-day cutoff, re-download after realising you have weekly not daily) | 10–15 minutes |
+| Time budget (one-off) | Several hours (figure out that pytrends is dead, discover the 90-day cutoff, re-download after realising you have weekly not daily) | 10–15 minutes |
 | Chunk planning | Hand-roll date math, inevitably wrong overlap | `plan_chunks.py` |
 | Cross-chunk scale | Naïve concat → stair-steps → silent model bias | Median-ratio stitch + weekly calibration |
 | Provenance | Forgotten; someone else inherits and can't reproduce | `.provenance.md` with URL + method + chunk map |
 | Quality check | Eyeball the plot | Quantitative: stitching std, daily-weekly r, calibration scalar |
+| Recurring refresh into a warehouse | Cron + babysit a laptop + manual BQ reconcile (or: just rebuild from scratch every week) | Cloud Scheduler → Cloud Run → idempotent BQ upsert; first-seen terms auto-backfill; never wipes history |
 
 ## How it works
 
@@ -160,11 +217,13 @@ Sources: [Claude Code Chrome docs](https://code.claude.com/docs/en/chrome), [cla
 6. **Calibrate** — compute `scalar = median(weekly_ref / stitched.resample("W").mean())` per term; apply.
 7. **Sanity-check** — per-term ratio std < 0.15, daily-weekly r in 0.5–0.8, visual join inspection.
 
+In **Path 2**, steps 2–7 run inside a Cloud Run container per Cloud Scheduler invocation; step 7's output is then upserted into BigQuery instead of written to a local CSV. The `daily` mode short-circuits the chunk plan to a rolling lookback window so each scheduled run only fetches new days, not the full history.
+
 ## Design decisions
 
 - **Why median ratio, not OLS?** Overlaps are short (~15 days) and contain occasional spikes (Black Friday, holidays). Single-parameter median is scale-invariant and outlier-robust; OLS injects a baseline shift that isn't really there. See [references/stitching-math.md](plugins/google-trends-browser-fetch/references/stitching-math.md).
 - **Why a separate weekly reference?** Chain-stitching fixes *relative* scales across chunks but the whole series is in chunk-0's arbitrary units. The weekly reference anchors to a single known scale.
-- **Why three compatibility paths?** Claude in Chrome requires a paid Anthropic plan — doesn't work with API credits, Bedrock, or Vertex. Browser MCP plugs the gap for Cursor and API-key users. Manual path works anywhere.
+- **Why two paths?** Path 1 (attended Chrome) is right for one-off analysis where you want eyes on each download; Path 2 (headless Cloud Run) is right for recurring refreshes into a warehouse. Within Path 1, multiple drivers (Claude-in-Chrome, Browser MCP, chrome-devtools-mcp, local Playwright) cover the gating differences across IDE / plan / browser combinations.
 - **Why `~75-day` chunks, not `~85`?** Hard cap is 89 days (anything ≥ 90 returns weekly). 75 leaves margin for timezone/rendering edge cases.
 
 ## Limitations
@@ -174,6 +233,7 @@ Sources: [Claude Code Chrome docs](https://code.claude.com/docs/en/chrome), [cla
 - Does NOT replace official Google Trends API when you have access to it. If your org has it, use it.
 - Does NOT work with mobile-only browsers or headless scripts at scale (Trends detects and blocks).
 - Does NOT auto-recover from Google UI redesigns. The CSV button location is stable enough that `javascript_tool` fallback finds it by aria-label / SVG icon, but major redesigns may require the skill to be updated.
+- **Path 2 specifically**: headless Cloud Run runs an anonymous Trends session, so expect more captchas / rate limits than a signed-in laptop session. Cookie injection is possible (mount a Google session into the container) but is not wired up out of the box — for high-volume term lists, plan around per-term rate limits rather than parallelism.
 
 ## Pitfalls to avoid
 
@@ -185,17 +245,35 @@ Sources: [Claude Code Chrome docs](https://code.claude.com/docs/en/chrome), [cla
 
 ## Related skills
 
-- **[causal-impact-campaign](https://github.com/wan-huiyan/causal-impact-campaign)** — BSTS-based causal impact estimation; Google Trends is a common covariate.
-- **[external-data-scout](https://github.com/wan-huiyan/external-data-scout)** — broader cataloging of open/paid external data sources, of which Trends is one.
-- **[data-provenance-verifier](https://github.com/wan-huiyan/data-provenance-verifier)** — verify that data files (including Trends CSVs) match their claimed source.
+- **[causal-impact-campaign](https://github.com/wan-huiyan/causal-impact-campaign)** — BSTS-based causal impact estimation; Trends daily series is the canonical exogenous covariate for this skill's models. Direct downstream consumer.
+- **[gcp-cloud-run](https://github.com/wan-huiyan/gcp-cloud-run)** — production Cloud Run patterns (Functions Framework, buildpack source layouts, concurrency, IAM). Useful background for understanding or extending Path 2.
+- **[gcp-pipeline-cost-analysis](https://github.com/wan-huiyan/gcp-pipeline-cost-analysis)** — estimate monthly GCP spend before turning on Path 2 at scale (Cloud Run invocations × Playwright cold-starts × BQ storage).
 
 ## Dependencies
 
+**Shared (both paths):**
+
 | | Required? | If missing |
 |---|---|---|
-| A browser-automation path (Claude-in-Chrome OR Browser MCP OR manual) | One required | Can't fetch — but skill explains the alternatives |
-| Python 3.9+ with pandas and numpy | Yes, for stitching | Weekly single-download still works; daily stitched does not |
-| Chrome or Edge signed into Google | Strongly recommended | Anonymous sessions rate-limit faster; not a hard block |
+| Python 3.9+ with pandas + numpy | Yes, for stitching | Weekly single-download still works; daily stitched does not |
+| One run mode (Path 1 attended Chrome, OR Path 2 Cloud Run) | One required | Can't fetch — pick whichever fits your workflow |
+
+**Path 1 — interactive (attended Chrome):**
+
+| | Required? | If missing |
+|---|---|---|
+| Local Chrome or Edge | Yes | Brave/Arc/Firefox not supported by Claude-in-Chrome; fall back to a local Playwright script |
+| A driver: Claude-in-Chrome / Browser MCP / chrome-devtools-mcp / local Playwright | One required | See the [within-Path-1 driver table](#compatibility) above |
+| Signed-in Google account in the browser | Strongly recommended | Anonymous sessions rate-limit faster |
+
+**Path 2 — scheduled (headless Cloud Run):**
+
+| | Required? | If missing |
+|---|---|---|
+| GCP project with Cloud Run + Cloud Scheduler enabled | Yes | Path 2 won't deploy |
+| BigQuery dataset (one for `weekly_reference`, `trends_daily`, `stitch_quality`) | Yes | Service runs but has nowhere to upsert; tables are auto-created on first run |
+| GCS bucket | Optional | Without it, per-run chunk CSVs and quality JSON aren't archived (the BQ tables still get the final stitched output) |
+| Cookie injection for signed-in headless | Optional | Anonymous container sessions hit rate limits sooner; for high-volume term lists, mount a Google session
 
 <details>
 <summary>Quality checklist (what this skill guarantees)</summary>
@@ -205,12 +283,13 @@ Sources: [Claude Code Chrome docs](https://code.claude.com/docs/en/chrome), [cla
 - [x] Chunk planning is deterministic and reproducible from start/end dates
 - [x] Fails loudly when overlaps are too short (< 3 days) or produce wild ratios (std > 0.15)
 - [x] No synthetic data fallback — if download fails, the script errors, never makes up numbers
-- [x] Compatible with three browser-automation paths, not just Claude in Chrome
+- [x] Two run modes: interactive (attended Chrome) and scheduled (headless Cloud Run), sharing the same chunking + stitching code
 </details>
 
 ## Version history
 
-- **v1.0.0** (2026-04-21) — initial release. Three compatibility paths, 5 files, synthetic-demo screenshot, anonymised from a real 9-chunk 18-month UK retail project.
+- **v1.1.0** (2026-04-30) — **major new capability: Path 2 (scheduled, headless) via Cloud Run + Cloud Scheduler**, designed and built end-to-end by [@kate-wheatley](https://github.com/kate-wheatley) ([#1](https://github.com/wan-huiyan/google-trends-browser-fetch/pull/1) — 13 files, ~2.9k lines). Adds the `cloud-run-google-trends-scraper/` service: containerised headless-Playwright pipeline, HTTP entrypoint via Functions Framework, `full` (date-range refresh) and `daily` (rolling-lookback incremental upsert) modes, BigQuery sinks for daily / weekly-reference / stitching-quality with auto-backfill for first-seen terms, scheduler-friendly per-term invocation via `X-Trends-Query-Term` header, dual table-id resolution, optional GCS artifact archival, and a pluggable BQ-or-CSV weekly reference. Promotes the skill from a one-off interactive workflow to a hands-off scheduled production pipeline. Also collapses the prior three interactive sub-paths (A/B/C) into a single Path 1 (attended Chrome, multiple drivers) and drops the manual-only path from the table.
+- **v1.0.0** (2026-04-21) — initial release. Three interactive sub-paths (now consolidated into Path 1), 5 files, synthetic-demo screenshot, anonymised from a real 9-chunk 18-month UK retail project.
 
 ## License
 

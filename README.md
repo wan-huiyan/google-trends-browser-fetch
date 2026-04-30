@@ -8,6 +8,10 @@ Fetch Google Trends data via browser automation, with multi-chunk daily-resoluti
 [![python](https://img.shields.io/badge/python-3.9--3.12-yellow)](https://www.python.org/)
 [![Claude Code](https://img.shields.io/badge/Claude_Code-skill-orange)](https://claude.com/claude-code)
 
+![Pipeline overview — interactive paths A–C and Path D added by @kate-wheatley](docs/pipeline-pixel.svg)
+
+The skill works two ways. **You + Claude + browser** for one-off interactive analysis (paths A–C, top track). **Cloud Scheduler + Cloud Run + BigQuery** for hands-off scheduled refreshes that upsert into a warehouse every night (path D, bottom track — designed and built by [@kate-wheatley](https://github.com/kate-wheatley)).
+
 ![Demo: chunk stitching](docs/demo-stitching.png)
 
 The panel above shows the problem this skill solves. Google Trends normalises every query to 0–100 within its own date range, so downloading overlapping chunks gives you the *same day* at *different values* (top). Naïve concatenation produces stair-step discontinuities that break any downstream model (middle). The skill's median-ratio stitching + weekly calibration produces a continuous daily series anchored to a known reference scale (bottom).

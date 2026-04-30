@@ -8,9 +8,9 @@ Fetch Google Trends data via browser automation, with multi-chunk daily-resoluti
 [![python](https://img.shields.io/badge/python-3.9--3.12-yellow)](https://www.python.org/)
 [![Claude Code](https://img.shields.io/badge/Claude_Code-skill-orange)](https://claude.com/claude-code)
 
-![Pipeline overview — interactive paths A–C and Path D added by @kate-wheatley](docs/pipeline-pixel.svg)
+![Pipeline overview — interactive Path 1 (attended) and scheduled Path 2 added by @kate-wheatley](docs/pipeline-pixel.svg)
 
-The skill works two ways. **You + Claude + browser** for one-off interactive analysis (paths A–C, top track). **Cloud Scheduler + Cloud Run + BigQuery** for hands-off scheduled refreshes that upsert into a warehouse every night (path D, bottom track — designed and built by [@kate-wheatley](https://github.com/kate-wheatley)).
+The skill works two ways. **Path 1 — interactive (attended):** you + an LLM + Chrome on your laptop, for one-off analysis. **Path 2 — scheduled (headless):** Cloud Scheduler + Cloud Run + BigQuery, for hands-off nightly refreshes into a warehouse — designed and built by [@kate-wheatley](https://github.com/kate-wheatley).
 
 ![Demo: chunk stitching](docs/demo-stitching.png)
 
@@ -23,7 +23,7 @@ Two facts that aren't obvious until you hit them:
 1. **`pytrends` is archived.** The community Python library was archived in April 2025 after Google tightened anti-scraping. The official Google Trends API launched July 2025 is gated alpha. For most users, **browser-driven CSV export is the only reliable path** as of April 2026.
 2. **Google Trends silently downgrades to weekly for long ranges.** Anything ≥ 90 days returns weekly. To get daily over, say, 18 months, you have to download overlapping ~75-day chunks and stitch them — which is fiddly because each chunk has its own independent 0–100 normalisation.
 
-This skill codifies both: the browser workflow (with three compatibility paths) and the stitching algorithm.
+This skill codifies both: the browser workflow (interactive on your laptop or headless on Cloud Run) and the stitching algorithm.
 
 ## ⚠️ One-time Chrome setup before first multi-chunk fetch
 
@@ -33,7 +33,7 @@ Chrome blocks the 2nd download from a site by default. Without this change, only
 
 Or, tighter: the first time Chrome blocks a download you'll see a small icon in the URL bar — click it and choose "Always allow trends.google.com to download multiple files".
 
-This applies to all three compatibility paths below.
+This applies to Path 1 (interactive) — Path 2 runs headless in a container and downloads to a writable directory inside the image.
 
 ## Quick start
 
@@ -106,38 +106,36 @@ git clone https://github.com/wan-huiyan/google-trends-browser-fetch.git \
 
 ## Compatibility
 
-Browser automation has environmental constraints. The skill supports four paths — three interactive (A–C) and one server-side (D) — pick whichever matches your setup.
+The skill supports two paths. They share the same chunk-planning + median-ratio stitching code under the hood — the difference is whether a human has to be at the laptop.
 
-| Path | Works with | Requires |
+| Path | What it is | When to use |
 |---|---|---|
-| **A. Claude in Chrome** (Anthropic-first-party) | Claude Code CLI (`claude --chrome`), VS Code ext, Claude desktop app | Pro / Max / Team / Enterprise plan (NOT API credits, NOT Bedrock/Vertex), Chrome or Edge (NOT Brave/Arc), not WSL |
-| **B. Browser MCP / chrome-devtools-mcp** | Cursor, Windsurf, any MCP host | An MCP server providing navigate/click/eval-JS |
-| **C. Manual human download** | Anywhere | Nothing — Claude only plans URLs and runs stitching |
-| **D. Cloud Run + Cloud Scheduler** (server-side, scheduled) | Any GCP project; no Claude needed at runtime | Cloud Run, Cloud Scheduler, BigQuery; uses Playwright headless inside the container |
+| **1. Interactive (attended)** | A signed-in Chrome session on your laptop, driven by an LLM or a local script. Drivers: Claude-in-Chrome, Browser MCP, chrome-devtools-mcp, or a local Playwright run. | One-off analysis, ad-hoc exploration, when you want to inspect each download. |
+| **2. Scheduled (headless)** | Headless Playwright in a Cloud Run container, triggered per-term by Cloud Scheduler, upserting into BigQuery. No laptop required. | Recurring refresh into a warehouse; production pipelines; nightly dashboards. |
 
-The stitching + chunking logic is universal; only the navigate/click calls differ. See [SKILL.md](plugins/google-trends-browser-fetch/SKILL.md) for paths A–C, and the [Production deployment](#production-deployment-path-d-cloud-run--cloud-scheduler) section below for path D.
+Both modes enforce the same one-`q`-per-URL rule, run the same stitching algorithm, and produce the same calibrated daily output. See [SKILL.md](plugins/google-trends-browser-fetch/SKILL.md) for Path 1 setup and the [Path 2 section below](#path-2-scheduled-production-cloud-run--cloud-scheduler) for the headless Cloud Run service.
 
 <details>
-<summary><strong>Can I use this with my setup?</strong> (API keys, Bedrock/Vertex, Cursor — verified April 2026)</summary>
+<summary><strong>Within Path 1: which driver fits my setup?</strong> (API keys, Bedrock/Vertex, Cursor — verified April 2026)</summary>
 
-The Anthropic-first-party "Claude in Chrome" extension has specific gating. If you hit a "not available" message, check the table below — then fall back to Path B (Browser MCP / chrome-devtools-mcp) which covers the gaps.
+The Anthropic-first-party "Claude in Chrome" extension has specific gating. If you hit a "not available" message, check the table below — then fall back to Browser MCP / chrome-devtools-mcp, which covers the gaps.
 
 | Your setup | Claude-in-Chrome? | What to use |
 |---|---|---|
-| Claude Code **CLI** (`claude --chrome`) + Pro/Max/Team/Enterprise plan | ✅ Yes — primary documented path | Path A |
-| Claude Code **VS Code extension** + paid plan | ✅ Yes | Path A |
-| Claude **desktop app** + paid plan | ✅ Yes (⚠️ [known conflict](https://github.com/anthropics/claude-code/issues/46869): if desktop + CLI both registered, desktop wins and CLI errors "extension not connected") | Path A |
-| **Cursor / Windsurf / other IDEs** | ❌ No — Anthropic-specific extension | Path B (Browser MCP / chrome-devtools-mcp) |
-| **Anthropic API key / console credits / pay-as-you-go** | ❌ Explicitly excluded from Claude-in-Chrome | Path B |
-| **Bedrock / Vertex AI / Microsoft Foundry** | ❌ Explicitly excluded — [need separate claude.ai account](https://code.claude.com/docs/en/chrome) | Path B or separate claude.ai account |
-| **Brave / Arc / other Chromium** browsers | ❌ Only Chrome + Edge supported | Path C (manual) or install Chrome |
-| **WSL** (Windows Subsystem for Linux) | ❌ Not supported | Path C (manual) |
+| Claude Code **CLI** (`claude --chrome`) + Pro/Max/Team/Enterprise plan | ✅ Yes — primary documented path | Claude-in-Chrome |
+| Claude Code **VS Code extension** + paid plan | ✅ Yes | Claude-in-Chrome |
+| Claude **desktop app** + paid plan | ✅ Yes (⚠️ [known conflict](https://github.com/anthropics/claude-code/issues/46869): if desktop + CLI both registered, desktop wins and CLI errors "extension not connected") | Claude-in-Chrome |
+| **Cursor / Windsurf / other IDEs** | ❌ No — Anthropic-specific extension | Browser MCP / chrome-devtools-mcp |
+| **Anthropic API key / console credits / pay-as-you-go** | ❌ Explicitly excluded from Claude-in-Chrome | Browser MCP / chrome-devtools-mcp |
+| **Bedrock / Vertex AI / Microsoft Foundry** | ❌ Explicitly excluded — [need separate claude.ai account](https://code.claude.com/docs/en/chrome) | Browser MCP, or a separate claude.ai account |
+| **Brave / Arc / other Chromium** browsers | ❌ Only Chrome + Edge supported | Install Chrome, or use a local Playwright script |
+| **WSL** (Windows Subsystem for Linux) | ❌ Not supported | Local Playwright script |
 
 Sources: [Claude Code Chrome docs](https://code.claude.com/docs/en/chrome), [claude.com/claude-for-chrome](https://claude.com/claude-for-chrome). Requirements verified April 2026 — check the official docs for the current state before assuming.
 
 </details>
 
-## Production deployment (Path D): Cloud Run + Cloud Scheduler
+## Path 2: Scheduled production (Cloud Run + Cloud Scheduler)
 
 > **Huge shoutout to [@kate-wheatley](https://github.com/kate-wheatley)**, who designed and built this entire path in [PR #1](https://github.com/wan-huiyan/google-trends-browser-fetch/pull/1) — promoting the skill from a one-off interactive workflow into a hands-off scheduled production pipeline. The 13-file service below is hers end to end: container, HTTP entrypoint, BQ upsert design, scheduling pattern, and all the env-driven configuration plumbing.
 
@@ -166,7 +164,7 @@ gcloud run deploy google-trends-scraper \
 
 Then create one Cloud Scheduler job per term, with HTTP target = the service URL and a custom header `X-Trends-Query-Term: <your term>`.
 
-**When to use Path D vs Paths A–C:** use D when you need recurring data (e.g. nightly refresh into a warehouse for a BSTS pipeline). Use A–C for one-off interactive analysis where you want to inspect each step.
+**When to use Path 2 vs Path 1:** use Path 2 when you need recurring data (e.g. nightly refresh into a warehouse for a BSTS pipeline). Use Path 1 for one-off interactive analysis where you want to inspect each step.
 
 **Design highlights worth calling out** (all credit to [@kate-wheatley](https://github.com/kate-wheatley)):
 
@@ -208,7 +206,7 @@ Then create one Cloud Scheduler job per term, with HTTP target = the service URL
 
 - **Why median ratio, not OLS?** Overlaps are short (~15 days) and contain occasional spikes (Black Friday, holidays). Single-parameter median is scale-invariant and outlier-robust; OLS injects a baseline shift that isn't really there. See [references/stitching-math.md](plugins/google-trends-browser-fetch/references/stitching-math.md).
 - **Why a separate weekly reference?** Chain-stitching fixes *relative* scales across chunks but the whole series is in chunk-0's arbitrary units. The weekly reference anchors to a single known scale.
-- **Why three compatibility paths?** Claude in Chrome requires a paid Anthropic plan — doesn't work with API credits, Bedrock, or Vertex. Browser MCP plugs the gap for Cursor and API-key users. Manual path works anywhere.
+- **Why two paths?** Path 1 (attended Chrome) is right for one-off analysis where you want eyes on each download; Path 2 (headless Cloud Run) is right for recurring refreshes into a warehouse. Within Path 1, multiple drivers (Claude-in-Chrome, Browser MCP, chrome-devtools-mcp, local Playwright) cover the gating differences across IDE / plan / browser combinations.
 - **Why `~75-day` chunks, not `~85`?** Hard cap is 89 days (anything ≥ 90 returns weekly). 75 leaves margin for timezone/rendering edge cases.
 
 ## Limitations
@@ -237,7 +235,7 @@ Then create one Cloud Scheduler job per term, with HTTP target = the service URL
 
 | | Required? | If missing |
 |---|---|---|
-| A browser-automation path (Claude-in-Chrome OR Browser MCP OR manual) | One required | Can't fetch — but skill explains the alternatives |
+| A browser-automation path (attended Chrome via Claude-in-Chrome / MCP / local Playwright, OR headless Cloud Run) | One required | Can't fetch — but skill explains the alternatives |
 | Python 3.9+ with pandas and numpy | Yes, for stitching | Weekly single-download still works; daily stitched does not |
 | Chrome or Edge signed into Google | Strongly recommended | Anonymous sessions rate-limit faster; not a hard block |
 
@@ -249,13 +247,13 @@ Then create one Cloud Scheduler job per term, with HTTP target = the service URL
 - [x] Chunk planning is deterministic and reproducible from start/end dates
 - [x] Fails loudly when overlaps are too short (< 3 days) or produce wild ratios (std > 0.15)
 - [x] No synthetic data fallback — if download fails, the script errors, never makes up numbers
-- [x] Compatible with four paths: three interactive browser-automation paths and one server-side Cloud Run path
+- [x] Two run modes: interactive (attended Chrome) and scheduled (headless Cloud Run), sharing the same chunking + stitching code
 </details>
 
 ## Version history
 
-- **v1.1.0** (2026-04-30) — **major new capability: production deployment via Cloud Run + Cloud Scheduler**, designed and built end-to-end by [@kate-wheatley](https://github.com/kate-wheatley) ([#1](https://github.com/wan-huiyan/google-trends-browser-fetch/pull/1) — 13 files, ~2.9k lines). Adds the `cloud-run-google-trends-scraper/` service: containerised headless-Playwright pipeline, HTTP entrypoint via Functions Framework, `full` (date-range refresh) and `daily` (rolling-lookback incremental upsert) modes, BigQuery sinks for daily / weekly-reference / stitching-quality with auto-backfill for first-seen terms, scheduler-friendly per-term invocation via `X-Trends-Query-Term` header, dual table-id resolution, optional GCS artifact archival, and a pluggable BQ-or-CSV weekly reference. Promotes the skill from interactive one-off use to a hands-off scheduled production pipeline.
-- **v1.0.0** (2026-04-21) — initial release. Three compatibility paths, 5 files, synthetic-demo screenshot, anonymised from a real 9-chunk 18-month UK retail project.
+- **v1.1.0** (2026-04-30) — **major new capability: Path 2 (scheduled, headless) via Cloud Run + Cloud Scheduler**, designed and built end-to-end by [@kate-wheatley](https://github.com/kate-wheatley) ([#1](https://github.com/wan-huiyan/google-trends-browser-fetch/pull/1) — 13 files, ~2.9k lines). Adds the `cloud-run-google-trends-scraper/` service: containerised headless-Playwright pipeline, HTTP entrypoint via Functions Framework, `full` (date-range refresh) and `daily` (rolling-lookback incremental upsert) modes, BigQuery sinks for daily / weekly-reference / stitching-quality with auto-backfill for first-seen terms, scheduler-friendly per-term invocation via `X-Trends-Query-Term` header, dual table-id resolution, optional GCS artifact archival, and a pluggable BQ-or-CSV weekly reference. Promotes the skill from a one-off interactive workflow to a hands-off scheduled production pipeline. Also collapses the prior three interactive sub-paths (A/B/C) into a single Path 1 (attended Chrome, multiple drivers) and drops the manual-only path from the table.
+- **v1.0.0** (2026-04-21) — initial release. Three interactive sub-paths (now consolidated into Path 1), 5 files, synthetic-demo screenshot, anonymised from a real 9-chunk 18-month UK retail project.
 
 ## License
 

@@ -3,3 +3,13 @@ __pycache__/
 .DS_Store
 node_modules/
 *.egg-info/
+
+# Cloud Run scraper — source only; runtime/local generates the rest
+cloud-run-google-trends-scraper/.env
+cloud-run-google-trends-scraper/venv/
+cloud-run-google-trends-scraper/chunks/
+cloud-run-google-trends-scraper/chunks.json
+cloud-run-google-trends-scraper/**/*.csv
+cloud-run-google-trends-scraper/run.log
+cloud-run-google-trends-scraper/stitch_quality.json
+cloud-run-google-trends-scraper/*.code-workspace

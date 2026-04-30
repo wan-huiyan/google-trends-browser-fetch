@@ -1,0 +1,17 @@
+# Google Cloud Run / Cloud Build buildpacks (Functions Framework).
+# This file must live at the **root of the uploaded source** (same folder as main.py).
+# If you upload a parent directory instead, copy these [[build.env]] entries into a
+# project.toml at that upload root and set GOOGLE_FUNCTION_SOURCE to the path to
+# this file (e.g. data/deploy_v2/main.py).
+
+[[build.env]]
+name = "GOOGLE_FUNCTION_TARGET"
+value = "run_trends_job"
+
+[[build.env]]
+name = "GOOGLE_FUNCTION_SOURCE"
+value = "main.py"
+
+[[build.env]]
+name = "GOOGLE_FUNCTION_SIGNATURE_TYPE"
+value = "http"

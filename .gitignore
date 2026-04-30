@@ -3,3 +3,7 @@ __pycache__/
 .DS_Store
 node_modules/
 *.egg-info/
+
+# Cloud Run scraper — local secrets and env (do not commit)
+cloud-run-google-trends-scraper/.env
+cloud-run-google-trends-scraper/venv/

@@ -102,15 +102,16 @@ git clone https://github.com/wan-huiyan/google-trends-browser-fetch.git \
 
 ## Compatibility
 
-Browser automation has environmental constraints. The skill supports three paths — pick whichever matches your setup.
+Browser automation has environmental constraints. The skill supports four paths — three interactive (A–C) and one server-side (D) — pick whichever matches your setup.
 
 | Path | Works with | Requires |
 |---|---|---|
-| **Claude in Chrome** (Anthropic-first-party) | Claude Code CLI (`claude --chrome`), VS Code ext, Claude desktop app | Pro / Max / Team / Enterprise plan (NOT API credits, NOT Bedrock/Vertex), Chrome or Edge (NOT Brave/Arc), not WSL |
-| **Browser MCP / chrome-devtools-mcp** | Cursor, Windsurf, any MCP host | An MCP server providing navigate/click/eval-JS |
-| **Manual human download** | Anywhere | Nothing — Claude only plans URLs and runs stitching |
+| **A. Claude in Chrome** (Anthropic-first-party) | Claude Code CLI (`claude --chrome`), VS Code ext, Claude desktop app | Pro / Max / Team / Enterprise plan (NOT API credits, NOT Bedrock/Vertex), Chrome or Edge (NOT Brave/Arc), not WSL |
+| **B. Browser MCP / chrome-devtools-mcp** | Cursor, Windsurf, any MCP host | An MCP server providing navigate/click/eval-JS |
+| **C. Manual human download** | Anywhere | Nothing — Claude only plans URLs and runs stitching |
+| **D. Cloud Run + Cloud Scheduler** (server-side, scheduled) | Any GCP project; no Claude needed at runtime | Cloud Run, Cloud Scheduler, BigQuery; uses Playwright headless inside the container |
 
-The stitching + chunking logic is universal; only the navigate/click calls differ. See [SKILL.md](plugins/google-trends-browser-fetch/SKILL.md) for each path's exact setup.
+The stitching + chunking logic is universal; only the navigate/click calls differ. See [SKILL.md](plugins/google-trends-browser-fetch/SKILL.md) for paths A–C, and the [Production deployment](#production-deployment-path-d-cloud-run--cloud-scheduler) section below for path D.
 
 <details>
 <summary><strong>Can I use this with my setup?</strong> (API keys, Bedrock/Vertex, Cursor — verified April 2026)</summary>
@@ -131,6 +132,35 @@ The Anthropic-first-party "Claude in Chrome" extension has specific gating. If y
 Sources: [Claude Code Chrome docs](https://code.claude.com/docs/en/chrome), [claude.com/claude-for-chrome](https://claude.com/claude-for-chrome). Requirements verified April 2026 — check the official docs for the current state before assuming.
 
 </details>
+
+## Production deployment (Path D): Cloud Run + Cloud Scheduler
+
+For unattended, scheduled scraping, the [`cloud-run-google-trends-scraper/`](cloud-run-google-trends-scraper/) directory ships a Cloud Run service that runs the same chunking + stitching pipeline inside a container with headless Playwright, then upserts results into BigQuery. Designed for one query term per invocation (matching the one-`q`-per-URL rule the skill enforces interactively).
+
+**What it gives you:**
+
+- **HTTP entrypoint** (`run_trends_job`, Functions Framework) — Cloud Scheduler hits the service URL once per term, passing the term in a custom header (`X-Trends-Query-Term`).
+- **Two run modes**:
+  - `full` — explicit `START_DATE` / `END_DATE`, full refresh.
+  - `daily` (alias `incremental`) — rolling lookback ending at `TRENDS_AS_OF_DATE` (or today, UTC). BigQuery upserts new days without wiping history. First-seen terms get auto-backfilled from `TRENDS_WEEKLY_START` for full history.
+- **BigQuery sinks** — weekly reference, daily stitched, and stitching-quality tables (auto-created on first run).
+- **Optional GCS artifacts** — full per-run output (chunk CSVs, stitched daily, quality JSON) under `gs://<bucket>/runs/<RUN_ID>/`.
+- **Per-term parallelism** — run one Cloud Scheduler job per term; recommended `Cloud Run concurrency = 1` so per-request env overrides don't overlap.
+
+**Quick deploy** (full env reference in [`cloud-run-google-trends-scraper/.env.example`](cloud-run-google-trends-scraper/.env.example)):
+
+```bash
+cd cloud-run-google-trends-scraper
+gcloud run deploy google-trends-scraper \
+  --source=. \
+  --region=europe-west2 \
+  --concurrency=1 \
+  --set-env-vars=PROJECT_ID=...,DATASET_ID=google_trends,TRENDS_GEO=GB,TRENDS_HL=en-GB
+```
+
+Then create one Cloud Scheduler job per term, with HTTP target = the service URL and a custom header `X-Trends-Query-Term: <your term>`.
+
+**When to use Path D vs Paths A–C:** use D when you need recurring data (e.g. nightly refresh into a warehouse for a BSTS pipeline). Use A–C for one-off interactive analysis where you want to inspect each step.
 
 ## What you get
 
@@ -205,11 +235,12 @@ Sources: [Claude Code Chrome docs](https://code.claude.com/docs/en/chrome), [cla
 - [x] Chunk planning is deterministic and reproducible from start/end dates
 - [x] Fails loudly when overlaps are too short (< 3 days) or produce wild ratios (std > 0.15)
 - [x] No synthetic data fallback — if download fails, the script errors, never makes up numbers
-- [x] Compatible with three browser-automation paths, not just Claude in Chrome
+- [x] Compatible with four paths: three interactive browser-automation paths and one server-side Cloud Run path
 </details>
 
 ## Version history
 
+- **v1.1.0** (2026-04-30) — added Path D: Cloud Run + Cloud Scheduler deployment under `cloud-run-google-trends-scraper/` with `full` and `daily` modes, BigQuery upsert sinks, and per-term scheduling via custom header. Contributed by [@kate-wheatley](https://github.com/kate-wheatley) ([#1](https://github.com/wan-huiyan/google-trends-browser-fetch/pull/1)).
 - **v1.0.0** (2026-04-21) — initial release. Three compatibility paths, 5 files, synthetic-demo screenshot, anonymised from a real 9-chunk 18-month UK retail project.
 
 ## License

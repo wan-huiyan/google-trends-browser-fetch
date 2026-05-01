@@ -1,0 +1,281 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 920 420" font-family="monospace">
+  <defs>
+    <marker id="ar-blue" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+      <polygon points="0 0, 8 3, 0 6" fill="#4A9EDA"/>
+    </marker>
+    <marker id="ar-pink" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+      <polygon points="0 0, 8 3, 0 6" fill="#E36AA8"/>
+    </marker>
+  </defs>
+
+  <style>
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes pulse  { 0%, 100% { opacity: 0.4; } 50% { opacity: 1; } }
+
+    .anim { opacity: 0; }
+
+    /* Path 1 (interactive) — top track build-up */
+    .p1-label   { animation: fadeIn 0.4s ease-out 0.3s forwards; }
+    .p1-user    { animation: fadeIn 0.4s ease-out 0.6s forwards; }
+    .p1-arrow1  { animation: fadeIn 0.3s ease-out 0.9s forwards; }
+    .p1-claude  { animation: fadeIn 0.4s ease-out 1.1s forwards; }
+    .p1-arrow2  { animation: fadeIn 0.3s ease-out 1.4s forwards; }
+    .p1-browser { animation: fadeIn 0.4s ease-out 1.6s forwards; }
+    .p1-arrow3  { animation: fadeIn 0.3s ease-out 1.9s forwards; }
+    .p1-stitch  { animation: fadeIn 0.4s ease-out 2.1s forwards; }
+    .p1-arrow4  { animation: fadeIn 0.3s ease-out 2.4s forwards; }
+    .p1-csv     { animation: fadeIn 0.4s ease-out 2.6s forwards; }
+
+    /* Path 2 (Katie's scheduled track) — banner first, then stations */
+    .p2-banner   { animation: fadeIn 0.5s ease-out 3.4s forwards; }
+    .p2-clock    { animation: fadeIn 0.4s ease-out 4.0s forwards; }
+    .p2-arrow1   { animation: fadeIn 0.3s ease-out 4.3s forwards; }
+    .p2-cloudrun { animation: fadeIn 0.4s ease-out 4.5s forwards; }
+    .p2-arrow2   { animation: fadeIn 0.3s ease-out 4.8s forwards; }
+    .p2-stitch   { animation: fadeIn 0.4s ease-out 5.0s forwards; }
+    .p2-arrow3   { animation: fadeIn 0.3s ease-out 5.3s forwards; }
+    .p2-bq       { animation: fadeIn 0.4s ease-out 5.5s forwards; }
+    .p2-arrow4   { animation: fadeIn 0.3s ease-out 5.8s forwards; }
+    .p2-dash     { animation: fadeIn 0.4s ease-out 6.0s forwards; }
+
+    /* Katie + sparkles + footer */
+    .p2-katie    { animation: fadeIn 0.5s ease-out 7.0s forwards; }
+    .p2-sparkle1 { animation: fadeIn 0.3s ease-out 7.4s forwards, pulse 1.5s ease-in-out 7.7s infinite; }
+    .p2-sparkle2 { animation: fadeIn 0.3s ease-out 7.6s forwards, pulse 1.5s ease-in-out 7.9s infinite; }
+    .p2-sparkle3 { animation: fadeIn 0.3s ease-out 7.8s forwards, pulse 1.5s ease-in-out 8.1s infinite; }
+    .footer-cap  { animation: fadeIn 0.5s ease-out 8.3s forwards; }
+  </style>
+
+  <rect width="920" height="420" fill="#fafbfc" rx="14"/>
+
+  <!-- Title (always visible) -->
+  <text x="460" y="30" text-anchor="middle" font-size="15" font-weight="bold" fill="#222">google-trends-browser-fetch — both tracks of the pipeline</text>
+  <text x="460" y="48" text-anchor="middle" font-size="11" fill="#888">interactive (Path 1) for one-off analysis · scheduled (Path 2) for production warehouses</text>
+
+  <!-- ============ ROW 1: Path 1 (interactive) ============ -->
+  <g class="anim p1-label">
+    <text x="60" y="78" font-size="11" font-weight="bold" fill="#4A9EDA">PATH 1 · interactive (laptop on)</text>
+    <line x1="60" y1="84" x2="660" y2="84" stroke="#4A9EDA" stroke-width="1" stroke-dasharray="3,3" opacity="0.4"/>
+  </g>
+
+  <!-- You character + label -->
+  <g class="anim p1-user">
+    <g transform="translate(70,100)">
+      <rect x="14" y="0"  width="28" height="7" fill="#2C2C2C"/>
+      <rect x="7"  y="7"  width="42" height="7" fill="#2C2C2C"/>
+      <rect x="7"  y="14" width="42" height="7" fill="#FFDAB9"/>
+      <rect x="7"  y="21" width="42" height="7" fill="#FFDAB9"/>
+      <rect x="14" y="21" width="7"  height="7" fill="#333"/>
+      <rect x="35" y="21" width="7"  height="7" fill="#333"/>
+      <rect x="7"  y="28" width="42" height="7" fill="#FFDAB9"/>
+      <rect x="21" y="28" width="14" height="7" fill="#D4956A"/>
+      <rect x="0"  y="35" width="56" height="7" fill="#4A9EDA"/>
+      <rect x="7"  y="42" width="42" height="14" fill="#4A9EDA"/>
+    </g>
+    <text x="98" y="180" text-anchor="middle" font-size="11" fill="#444">you</text>
+  </g>
+
+  <line class="anim p1-arrow1" x1="160" y1="135" x2="200" y2="135" stroke="#4A9EDA" stroke-width="2" marker-end="url(#ar-blue)"/>
+
+  <!-- Claude character + label -->
+  <g class="anim p1-claude">
+    <g transform="translate(220,100)">
+      <rect x="14" y="0"  width="28" height="7" fill="#DA7756"/>
+      <rect x="7"  y="7"  width="42" height="7" fill="#DA7756"/>
+      <rect x="7"  y="14" width="42" height="7" fill="#FFDAB9"/>
+      <rect x="7"  y="21" width="42" height="7" fill="#FFDAB9"/>
+      <rect x="14" y="21" width="7"  height="7" fill="#333"/>
+      <rect x="35" y="21" width="7"  height="7" fill="#333"/>
+      <rect x="7"  y="28" width="42" height="7" fill="#FFDAB9"/>
+      <rect x="21" y="28" width="14" height="7" fill="#C0392B"/>
+      <rect x="0"  y="35" width="56" height="7" fill="#DA7756"/>
+      <rect x="7"  y="42" width="42" height="14" fill="#DA7756"/>
+    </g>
+    <text x="248" y="180" text-anchor="middle" font-size="11" fill="#444">claude</text>
+  </g>
+
+  <line class="anim p1-arrow2" x1="310" y1="135" x2="350" y2="135" stroke="#4A9EDA" stroke-width="2" marker-end="url(#ar-blue)"/>
+
+  <!-- Browser icon + labels -->
+  <g class="anim p1-browser">
+    <g transform="translate(360,105)">
+      <rect x="0" y="0"  width="63" height="7"  fill="#888"/>
+      <rect x="7" y="0"  width="7"  height="7"  fill="#FF6B6B"/>
+      <rect x="14" y="0" width="7"  height="7"  fill="#FFD93D"/>
+      <rect x="21" y="0" width="7"  height="7"  fill="#6BCB77"/>
+      <rect x="0" y="7"  width="63" height="42" fill="#fff" stroke="#888" stroke-width="1"/>
+      <rect x="7" y="14" width="49" height="7"  fill="#4A9EDA" opacity="0.4"/>
+      <rect x="7" y="28" width="35" height="7"  fill="#4A9EDA" opacity="0.6"/>
+      <rect x="7" y="35" width="42" height="7"  fill="#4A9EDA" opacity="0.4"/>
+    </g>
+    <text x="391" y="180" text-anchor="middle" font-size="11" fill="#444">browser</text>
+    <text x="391" y="194" text-anchor="middle" font-size="9" fill="#888">9 chunk CSVs</text>
+  </g>
+
+  <line class="anim p1-arrow3" x1="430" y1="135" x2="470" y2="135" stroke="#4A9EDA" stroke-width="2" marker-end="url(#ar-blue)"/>
+
+  <!-- Stitch icon + labels -->
+  <g class="anim p1-stitch">
+    <g transform="translate(480,105)">
+      <rect x="0"  y="14" width="14" height="3" fill="#4A9EDA"/>
+      <rect x="14" y="7"  width="7"  height="3" fill="#4A9EDA"/>
+      <rect x="21" y="21" width="7"  height="3" fill="#4A9EDA"/>
+      <rect x="28" y="14" width="7"  height="3" fill="#4A9EDA"/>
+      <rect x="35" y="7"  width="7"  height="3" fill="#4A9EDA"/>
+      <rect x="42" y="21" width="7"  height="3" fill="#4A9EDA"/>
+      <rect x="49" y="14" width="14" height="3" fill="#4A9EDA"/>
+      <rect x="0"  y="35" width="63" height="3" fill="#74AA63"/>
+      <text x="31" y="56" text-anchor="middle" font-size="9" fill="#444">stitch</text>
+    </g>
+    <text x="511" y="180" text-anchor="middle" font-size="11" fill="#444">median-ratio</text>
+    <text x="511" y="194" text-anchor="middle" font-size="9" fill="#888">+ weekly calibration</text>
+  </g>
+
+  <line class="anim p1-arrow4" x1="550" y1="135" x2="590" y2="135" stroke="#4A9EDA" stroke-width="2" marker-end="url(#ar-blue)"/>
+
+  <!-- CSV icon + label -->
+  <g class="anim p1-csv">
+    <g transform="translate(600,105)">
+      <rect x="7"  y="0"  width="42" height="49" fill="#fff" stroke="#888" stroke-width="1"/>
+      <rect x="35" y="0"  width="7"  height="7"  fill="#888"/>
+      <rect x="35" y="7"  width="14" height="0.1" stroke="#888" stroke-width="1"/>
+      <rect x="14" y="14" width="28" height="3" fill="#4A9EDA"/>
+      <rect x="14" y="21" width="21" height="3" fill="#4A9EDA"/>
+      <rect x="14" y="28" width="28" height="3" fill="#4A9EDA"/>
+      <rect x="14" y="35" width="14" height="3" fill="#4A9EDA"/>
+      <text x="28" y="62" text-anchor="middle" font-size="9" fill="#444">trends_daily</text>
+    </g>
+    <text x="628" y="180" text-anchor="middle" font-size="11" fill="#444">CSV + provenance</text>
+  </g>
+
+  <!-- ============ ROW 2: Path 2 (Katie) ============ -->
+  <g class="anim p2-banner">
+    <rect x="40" y="220" width="840" height="42" fill="#FDE6F0" stroke="#E36AA8" stroke-width="2" rx="10"/>
+    <text x="60" y="246" font-size="12" font-weight="bold" fill="#C73E80">✦ PATH 2 · scheduled (headless) · added by @kate-wheatley ✦</text>
+    <text x="860" y="246" text-anchor="end" font-size="10" fill="#C73E80" font-style="italic">(13 files · ~2.9k lines)</text>
+  </g>
+
+  <!-- Scheduler clock + labels -->
+  <g class="anim p2-clock">
+    <g transform="translate(70,280)">
+      <circle cx="28" cy="28" r="24" fill="#fff" stroke="#E36AA8" stroke-width="2"/>
+      <rect x="26" y="14" width="4" height="14" fill="#E36AA8"/>
+      <rect x="26" y="26" width="18" height="4" fill="#E36AA8"/>
+      <circle cx="28" cy="28" r="2" fill="#E36AA8"/>
+    </g>
+    <text x="98" y="360" text-anchor="middle" font-size="11" fill="#444">Cloud Scheduler</text>
+    <text x="98" y="374" text-anchor="middle" font-size="9" fill="#888">one job per term</text>
+  </g>
+
+  <line class="anim p2-arrow1" x1="160" y1="308" x2="200" y2="308" stroke="#E36AA8" stroke-width="2" marker-end="url(#ar-pink)"/>
+
+  <!-- Cloud Run + labels -->
+  <g class="anim p2-cloudrun">
+    <g transform="translate(210,278)">
+      <ellipse cx="40" cy="20" rx="36" ry="14" fill="#E36AA8" opacity="0.25"/>
+      <ellipse cx="28" cy="22" rx="18" ry="12" fill="#E36AA8" opacity="0.25"/>
+      <ellipse cx="50" cy="22" rx="20" ry="12" fill="#E36AA8" opacity="0.25"/>
+      <rect x="14" y="28" width="56" height="28" fill="#fff" stroke="#E36AA8" stroke-width="2" rx="3"/>
+      <rect x="21" y="35" width="7" height="7" fill="#74AA63"/>
+      <rect x="32" y="35" width="35" height="3" fill="#bbb"/>
+      <rect x="32" y="42" width="28" height="3" fill="#bbb"/>
+      <rect x="21" y="49" width="7" height="3" fill="#74AA63"/>
+      <rect x="32" y="49" width="35" height="3" fill="#bbb"/>
+    </g>
+    <text x="252" y="360" text-anchor="middle" font-size="11" fill="#444">Cloud Run</text>
+    <text x="252" y="374" text-anchor="middle" font-size="9" fill="#888">headless Playwright</text>
+  </g>
+
+  <line class="anim p2-arrow2" x1="310" y1="308" x2="350" y2="308" stroke="#E36AA8" stroke-width="2" marker-end="url(#ar-pink)"/>
+
+  <!-- Stitch (mini) + labels -->
+  <g class="anim p2-stitch">
+    <g transform="translate(360,290)">
+      <rect x="0"  y="14" width="14" height="3" fill="#E36AA8"/>
+      <rect x="14" y="7"  width="7"  height="3" fill="#E36AA8"/>
+      <rect x="21" y="21" width="7"  height="3" fill="#E36AA8"/>
+      <rect x="28" y="14" width="7"  height="3" fill="#E36AA8"/>
+      <rect x="35" y="7"  width="7"  height="3" fill="#E36AA8"/>
+      <rect x="42" y="21" width="7"  height="3" fill="#E36AA8"/>
+      <rect x="49" y="14" width="14" height="3" fill="#E36AA8"/>
+    </g>
+    <text x="391" y="360" text-anchor="middle" font-size="11" fill="#444">stitch (in-container)</text>
+    <text x="391" y="374" text-anchor="middle" font-size="9" fill="#888">same algorithm</text>
+  </g>
+
+  <line class="anim p2-arrow3" x1="430" y1="308" x2="470" y2="308" stroke="#E36AA8" stroke-width="2" marker-end="url(#ar-pink)"/>
+
+  <!-- BigQuery + labels -->
+  <g class="anim p2-bq">
+    <g transform="translate(480,278)">
+      <ellipse cx="32" cy="6"  rx="28" ry="6" fill="#E36AA8" opacity="0.5"/>
+      <rect x="4" y="6" width="56" height="42" fill="#fff" stroke="#E36AA8" stroke-width="2"/>
+      <ellipse cx="32" cy="48" rx="28" ry="6" fill="#fff" stroke="#E36AA8" stroke-width="2"/>
+      <ellipse cx="32" cy="20" rx="28" ry="4" fill="none" stroke="#E36AA8" stroke-width="1" opacity="0.6"/>
+      <ellipse cx="32" cy="34" rx="28" ry="4" fill="none" stroke="#E36AA8" stroke-width="1" opacity="0.6"/>
+    </g>
+    <text x="512" y="360" text-anchor="middle" font-size="11" fill="#444">BigQuery</text>
+    <text x="512" y="374" text-anchor="middle" font-size="9" fill="#888">upsert, never wipe</text>
+  </g>
+
+  <line class="anim p2-arrow4" x1="550" y1="308" x2="590" y2="308" stroke="#E36AA8" stroke-width="2" marker-end="url(#ar-pink)"/>
+
+  <!-- Dashboard + labels -->
+  <g class="anim p2-dash">
+    <g transform="translate(600,278)">
+      <rect x="0" y="0" width="63" height="56" fill="#fff" stroke="#E36AA8" stroke-width="2" rx="3"/>
+      <rect x="7"  y="42" width="7" height="7"  fill="#E36AA8"/>
+      <rect x="17" y="35" width="7" height="14" fill="#E36AA8"/>
+      <rect x="27" y="28" width="7" height="21" fill="#E36AA8"/>
+      <rect x="37" y="21" width="7" height="28" fill="#E36AA8"/>
+      <rect x="47" y="14" width="7" height="35" fill="#E36AA8"/>
+      <line x1="7" y1="49" x2="56" y2="49" stroke="#888" stroke-width="1"/>
+    </g>
+    <text x="632" y="360" text-anchor="middle" font-size="11" fill="#444">fresh dashboard</text>
+    <text x="632" y="374" text-anchor="middle" font-size="9" fill="#888">every morning</text>
+  </g>
+
+  <!-- Katie character (waving) + label -->
+  <g class="anim p2-katie">
+    <g transform="translate(770,275)">
+      <rect x="14" y="0"  width="28" height="7"  fill="#8B5E3C"/>
+      <rect x="7"  y="7"  width="42" height="7"  fill="#8B5E3C"/>
+      <rect x="0"  y="14" width="7"  height="21" fill="#8B5E3C"/>
+      <rect x="49" y="14" width="7"  height="21" fill="#8B5E3C"/>
+      <rect x="7"  y="14" width="42" height="7" fill="#FFDAB9"/>
+      <rect x="7"  y="21" width="42" height="7" fill="#FFDAB9"/>
+      <rect x="14" y="21" width="7"  height="7" fill="#333"/>
+      <rect x="35" y="21" width="7"  height="7" fill="#333"/>
+      <rect x="7"  y="28" width="42" height="7" fill="#FFDAB9"/>
+      <rect x="21" y="28" width="14" height="7" fill="#C0392B"/>
+      <rect x="0"  y="35" width="56" height="7" fill="#E36AA8"/>
+      <rect x="7"  y="42" width="42" height="14" fill="#E36AA8"/>
+      <rect x="56" y="28" width="7" height="7" fill="#FFDAB9"/>
+      <rect x="56" y="21" width="7" height="7" fill="#FFDAB9"/>
+    </g>
+    <text x="798" y="360" text-anchor="middle" font-size="11" fill="#C73E80" font-weight="bold">katie ✨</text>
+  </g>
+
+  <!-- Sparkles -->
+  <g class="anim p2-sparkle1" fill="#FFD700">
+    <rect x="844" y="280" width="3" height="3"/>
+    <rect x="841" y="283" width="3" height="3"/>
+    <rect x="847" y="283" width="3" height="3"/>
+    <rect x="844" y="286" width="3" height="3"/>
+  </g>
+  <g class="anim p2-sparkle2" fill="#FFD700">
+    <rect x="755" y="305" width="3" height="3"/>
+    <rect x="752" y="308" width="3" height="3"/>
+    <rect x="758" y="308" width="3" height="3"/>
+    <rect x="755" y="311" width="3" height="3"/>
+  </g>
+  <g class="anim p2-sparkle3" fill="#FFD700">
+    <rect x="855" y="320" width="3" height="3"/>
+    <rect x="852" y="323" width="3" height="3"/>
+    <rect x="858" y="323" width="3" height="3"/>
+    <rect x="855" y="326" width="3" height="3"/>
+  </g>
+
+  <!-- Footer caption -->
+  <text class="anim footer-cap" x="460" y="408" text-anchor="middle" font-size="10" fill="#888" font-style="italic">same chunking + stitching algorithm under the hood — katie wrapped it in a server so you never have to click "download" again</text>
+</svg>

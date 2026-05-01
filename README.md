@@ -8,7 +8,7 @@ Fetch Google Trends data via browser automation, with multi-chunk daily-resoluti
 [![python](https://img.shields.io/badge/python-3.9--3.12-yellow)](https://www.python.org/)
 [![Claude Code](https://img.shields.io/badge/Claude_Code-skill-orange)](https://claude.com/claude-code)
 
-![Pipeline overview — interactive Path 1 (attended) and scheduled Path 2 added by @kate-wheatley](docs/pipeline-pixel.svg)
+[![Pipeline overview — animated, interactive Path 1 + scheduled Path 2 by @kate-wheatley](https://raw.githubusercontent.com/wan-huiyan/google-trends-browser-fetch/main/docs/pipeline-flow.gif?v=1)](https://raw.githubusercontent.com/wan-huiyan/google-trends-browser-fetch/main/docs/pipeline-pixel-animated.svg?v=1)
 
 The skill works two ways. **Path 1 — interactive (attended):** you + an LLM + Chrome on your laptop, for one-off analysis. **Path 2 — scheduled (headless):** Cloud Scheduler + Cloud Run + BigQuery, for hands-off nightly refreshes into a warehouse — designed and built by [@kate-wheatley](https://github.com/kate-wheatley).
 

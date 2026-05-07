@@ -6,6 +6,8 @@ node_modules/
 
 # Cloud Run scraper — source only; runtime/local generates the rest
 cloud-run-google-trends-scraper/.env
+cloud-run-google-trends-scraper/trends_auth.json
+cloud-run-google-trends-scraper/related_queries_downloads/
 cloud-run-google-trends-scraper/venv/
 cloud-run-google-trends-scraper/chunks/
 cloud-run-google-trends-scraper/chunks.json

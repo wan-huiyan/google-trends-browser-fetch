@@ -18,4 +18,4 @@ RUN mkdir -p /opt/ms-playwright \
 COPY *.py project.toml ./
 
 EXPOSE 8080
-CMD sh -c 'exec functions-framework --target=run_trends_job --host=0.0.0.0 --port=${PORT:-8080}'
+CMD sh -c 'exec functions-framework --target=${FUNCTION_TARGET:-run_trends_job} --host=0.0.0.0 --port=${PORT:-8080}'

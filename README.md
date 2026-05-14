@@ -10,7 +10,21 @@ Fetch Google Trends data via browser automation, with multi-chunk daily-resoluti
 
 [![Pipeline overview — animated, interactive Path 1 + scheduled Path 2 by @kate-wheatley](https://raw.githubusercontent.com/wan-huiyan/google-trends-browser-fetch/main/docs/pipeline-flow.gif?v=1)](https://raw.githubusercontent.com/wan-huiyan/google-trends-browser-fetch/main/docs/pipeline-pixel-animated.svg?v=1)
 
-The skill works two ways. **Path 1 — interactive (attended):** you + an LLM + Chrome on your laptop, for one-off analysis. **Path 2 — scheduled (headless):** Cloud Scheduler + Cloud Run + BigQuery, for hands-off nightly refreshes into a warehouse — designed and built by [@kate-wheatley](https://github.com/kate-wheatley).
+The skill works two ways. **Path 1 — interactive (attended):** you + an LLM + Chrome on your laptop, for one-off analysis. **Path 2 — scheduled (headless):** Cloud Scheduler + Cloud Run + BigQuery, for hands-off nightly refreshes into a warehouse (designed and built by [@kate-wheatley](https://github.com/kate-wheatley)), plus a related-queries companion by [@omarelalfy567](https://github.com/omarelalfy567).
+
+---
+
+<div align="center">
+
+## 💛 Built with love
+
+<a href="https://github.com/wan-huiyan/google-trends-browser-fetch/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=wan-huiyan/google-trends-browser-fetch" alt="contributors" />
+</a>
+
+</div>
+
+---
 
 ![Demo: chunk stitching](docs/demo-stitching.png)
 
@@ -141,6 +155,8 @@ Sources: [Claude Code Chrome docs](https://code.claude.com/docs/en/chrome), [cla
 
 > **Huge shoutout to [@kate-wheatley](https://github.com/kate-wheatley)**, who designed and built this entire path in [PR #1](https://github.com/wan-huiyan/google-trends-browser-fetch/pull/1) — promoting the skill from a one-off interactive workflow into a hands-off scheduled production pipeline. The 13-file service below is hers end to end: container, HTTP entrypoint, BQ upsert design, scheduling pattern, and all the env-driven configuration plumbing.
 
+> **And a big shoutout to [@omarelalfy567](https://github.com/omarelalfy567)**, who built the related-queries companion on top — a parallel Playwright scraper that pulls RISING + TOP related queries for every tracked term and upserts them to BigQuery as a sibling Cloud Run service. 4 files, ~1.2k lines, all the scraping logic his own.
+
 For unattended, scheduled scraping, the [`cloud-run-google-trends-scraper/`](cloud-run-google-trends-scraper/) directory ships a Cloud Run service that runs the same chunking + stitching pipeline inside a container with headless Playwright, then upserts results into BigQuery. Designed for one query term per invocation (matching the one-`q`-per-URL rule the skill enforces interactively).
 
 **What it gives you:**
@@ -152,6 +168,7 @@ For unattended, scheduled scraping, the [`cloud-run-google-trends-scraper/`](clo
 - **BigQuery sinks** — weekly reference, daily stitched, and stitching-quality tables (auto-created on first run).
 - **Optional GCS artifacts** — full per-run output (chunk CSVs, stitched daily, quality JSON) under `gs://<bucket>/runs/<RUN_ID>/`.
 - **Per-term parallelism** — run one Cloud Scheduler job per term; recommended `Cloud Run concurrency = 1` so per-request env overrides don't overlap.
+- **Related-queries companion service** — same image, second Cloud Run service (`FUNCTION_TARGET=run_related_queries_job`), built by [@omarelalfy567](https://github.com/omarelalfy567). Reads tracked terms from `03_trends_daily`, scrapes RISING + TOP related queries for each as a point-in-time Playwright snapshot, and upserts to `05_related_queries`. No extra term config needed.
 
 **Quick deploy** (full env reference in [`cloud-run-google-trends-scraper/.env.example`](cloud-run-google-trends-scraper/.env.example)):
 
@@ -176,6 +193,12 @@ Then create one Cloud Scheduler job per term, with HTTP target = the service URL
 - **Dual table-id resolution** — every BQ table env var accepts either a fully-qualified `project.dataset.table` or a bare table id that combines with `PROJECT_ID` + `DATASET_ID`, so the same image works across dev/prod without rewrites.
 - **Pluggable weekly reference** — `STITCH_WEEKLY_REF_SOURCE=bq` lets the calibration step reuse a previously-loaded weekly table instead of re-downloading, reducing Trends rate-limit exposure on every run.
 
+**Design highlights (related-queries companion, all credit to [@omarelalfy567](https://github.com/omarelalfy567)):**
+
+- **BQ-driven term discovery** — reads the tracked-term list from the existing `03_trends_daily` table rather than requiring separate configuration, so the related-queries service stays in sync with whatever terms the timeseries pipeline is already tracking. Zero operator overhead when terms are added or removed.
+- **Signed-in session reuse** — `create_storage_state.py` saves a Playwright auth session to JSON so the headless scraper can reuse a signed-in browser session across runs, substantially cutting the 429s that anonymous Cloud Run instances hit almost immediately on Trends.
+- **Single-session RISING + TOP** — both related-query tables are downloaded in one Playwright browser session per term; no second invocation needed, keeping the scraper fast and rate-limit-friendly.
+
 ## What you get
 
 **Path 1 — interactive scripts and references:**
@@ -196,6 +219,13 @@ Then create one Cloud Scheduler job per term, with HTTP target = the service URL
 - **`terms_input.py`** — resolves `TRENDS_TERMS` (CSV string or JSON array) and per-request `X-Trends-Query-Term` header; enforces one-`q`-per-URL.
 - **`Dockerfile`**, **`requirements.txt`**, **`project.toml`**, **`.env.example`**, **`.dockerignore`** — container build, deps, Functions Framework manifest, full env reference, and a sane ignore list for source uploads.
 
+**Related-queries companion** (by [@omarelalfy567](https://github.com/omarelalfy567)):
+
+- **`main_related.py`** — Cloud Run HTTP entrypoint (`run_related_queries_job`); reads tracked terms from `03_trends_daily`, runs the Playwright scraper for each, and upserts to `05_related_queries`. Deploy alongside `main.py` with `FUNCTION_TARGET=run_related_queries_job` on a separate Cloud Run service.
+- **`fetch_related_queries.py`** — headless Playwright driver that opens the classic Explore URL per term and downloads both RISING and TOP related-queries tables as a single CSV per term. No chunking or stitching — it's a point-in-time snapshot.
+- **`bq_related_queries.py`** — upserts related-queries rows into `05_related_queries`; auto-creates the table on first run.
+- **`create_storage_state.py`** — saves a signed-in Playwright session to JSON (`TRENDS_STORAGE_STATE`) for reuse across runs, reducing 429 rate limits on anonymous headless sessions.
+
 ## With skill vs without
 
 | | Without | With |
@@ -206,6 +236,7 @@ Then create one Cloud Scheduler job per term, with HTTP target = the service URL
 | Provenance | Forgotten; someone else inherits and can't reproduce | `.provenance.md` with URL + method + chunk map |
 | Quality check | Eyeball the plot | Quantitative: stitching std, daily-weekly r, calibration scalar |
 | Recurring refresh into a warehouse | Cron + babysit a laptop + manual BQ reconcile (or: just rebuild from scratch every week) | Cloud Scheduler → Cloud Run → idempotent BQ upsert; first-seen terms auto-backfill; never wipes history |
+| Related queries (rising + top) | Separate manual download, schema juggling, no history | `run_related_queries_job` — sibling Cloud Run service, same image, reads terms from BQ, upserts to `05_related_queries` |
 
 ## How it works
 
@@ -288,6 +319,7 @@ In **Path 2**, steps 2–7 run inside a Cloud Run container per Cloud Scheduler 
 
 ## Version history
 
+- **v1.2.0** (2026-05-07) — **related-queries companion service**, built by [@omarelalfy567](https://github.com/omarelalfy567). Adds a sibling Cloud Run service (`FUNCTION_TARGET=run_related_queries_job`) that scrapes RISING + TOP related queries for every tracked term as a point-in-time Playwright snapshot and upserts to `05_related_queries` in BigQuery. BQ-driven term discovery (reads from `03_trends_daily` — no extra config when terms change), signed-in session reuse via `create_storage_state.py`, and single-session download of both tables per term. 4 files, ~1.2k lines.
 - **v1.1.0** (2026-04-30) — **major new capability: Path 2 (scheduled, headless) via Cloud Run + Cloud Scheduler**, designed and built end-to-end by [@kate-wheatley](https://github.com/kate-wheatley) ([#1](https://github.com/wan-huiyan/google-trends-browser-fetch/pull/1) — 13 files, ~2.9k lines). Adds the `cloud-run-google-trends-scraper/` service: containerised headless-Playwright pipeline, HTTP entrypoint via Functions Framework, `full` (date-range refresh) and `daily` (rolling-lookback incremental upsert) modes, BigQuery sinks for daily / weekly-reference / stitching-quality with auto-backfill for first-seen terms, scheduler-friendly per-term invocation via `X-Trends-Query-Term` header, dual table-id resolution, optional GCS artifact archival, and a pluggable BQ-or-CSV weekly reference. Promotes the skill from a one-off interactive workflow to a hands-off scheduled production pipeline. Also collapses the prior three interactive sub-paths (A/B/C) into a single Path 1 (attended Chrome, multiple drivers) and drops the manual-only path from the table.
 - **v1.0.0** (2026-04-21) — initial release. Three interactive sub-paths (now consolidated into Path 1), 5 files, synthetic-demo screenshot, anonymised from a real 9-chunk 18-month UK retail project.
 

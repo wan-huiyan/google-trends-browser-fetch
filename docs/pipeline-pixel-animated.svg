@@ -38,12 +38,15 @@
     .p2-arrow4   { animation: fadeIn 0.3s ease-out 5.8s forwards; }
     .p2-dash     { animation: fadeIn 0.4s ease-out 6.0s forwards; }
 
-    /* Katie + sparkles + footer */
+    /* Katie + Omar + sparkles + footer */
     .p2-katie    { animation: fadeIn 0.5s ease-out 7.0s forwards; }
+    .p2-omar     { animation: fadeIn 0.5s ease-out 7.2s forwards; }
     .p2-sparkle1 { animation: fadeIn 0.3s ease-out 7.4s forwards, pulse 1.5s ease-in-out 7.7s infinite; }
     .p2-sparkle2 { animation: fadeIn 0.3s ease-out 7.6s forwards, pulse 1.5s ease-in-out 7.9s infinite; }
     .p2-sparkle3 { animation: fadeIn 0.3s ease-out 7.8s forwards, pulse 1.5s ease-in-out 8.1s infinite; }
-    .footer-cap  { animation: fadeIn 0.5s ease-out 8.3s forwards; }
+    .p2-sparkle4 { animation: fadeIn 0.3s ease-out 7.6s forwards, pulse 1.5s ease-in-out 7.9s infinite; }
+    .p2-sparkle5 { animation: fadeIn 0.3s ease-out 7.8s forwards, pulse 1.5s ease-in-out 8.1s infinite; }
+    .footer-cap  { animation: fadeIn 0.5s ease-out 8.5s forwards; }
   </style>
 
   <rect width="920" height="420" fill="#fafbfc" rx="14"/>
@@ -151,8 +154,8 @@
   <!-- ============ ROW 2: Path 2 (Katie) ============ -->
   <g class="anim p2-banner">
     <rect x="40" y="220" width="840" height="42" fill="#FDE6F0" stroke="#E36AA8" stroke-width="2" rx="10"/>
-    <text x="60" y="246" font-size="12" font-weight="bold" fill="#C73E80">✦ PATH 2 · scheduled (headless) · added by @kate-wheatley ✦</text>
-    <text x="860" y="246" text-anchor="end" font-size="10" fill="#C73E80" font-style="italic">(13 files · ~2.9k lines)</text>
+    <text x="60" y="246" font-size="11" font-weight="bold" fill="#C73E80">✦ PATH 2 · scheduled (headless) · @kate-wheatley + @omarelalfy567 ✦</text>
+    <text x="860" y="246" text-anchor="end" font-size="10" fill="#C73E80" font-style="italic">(17 files · ~4.1k lines)</text>
   </g>
 
   <!-- Scheduler clock + labels -->
@@ -237,45 +240,79 @@
 
   <!-- Katie character (waving) + label -->
   <g class="anim p2-katie">
-    <g transform="translate(770,275)">
+    <g transform="translate(695,275)">
       <rect x="14" y="0"  width="28" height="7"  fill="#8B5E3C"/>
       <rect x="7"  y="7"  width="42" height="7"  fill="#8B5E3C"/>
       <rect x="0"  y="14" width="7"  height="21" fill="#8B5E3C"/>
       <rect x="49" y="14" width="7"  height="21" fill="#8B5E3C"/>
-      <rect x="7"  y="14" width="42" height="7" fill="#FFDAB9"/>
-      <rect x="7"  y="21" width="42" height="7" fill="#FFDAB9"/>
-      <rect x="14" y="21" width="7"  height="7" fill="#333"/>
-      <rect x="35" y="21" width="7"  height="7" fill="#333"/>
-      <rect x="7"  y="28" width="42" height="7" fill="#FFDAB9"/>
-      <rect x="21" y="28" width="14" height="7" fill="#C0392B"/>
-      <rect x="0"  y="35" width="56" height="7" fill="#E36AA8"/>
+      <rect x="7"  y="14" width="42" height="7"  fill="#FFDAB9"/>
+      <rect x="7"  y="21" width="42" height="7"  fill="#FFDAB9"/>
+      <rect x="14" y="21" width="7"  height="7"  fill="#333"/>
+      <rect x="35" y="21" width="7"  height="7"  fill="#333"/>
+      <rect x="7"  y="28" width="42" height="7"  fill="#FFDAB9"/>
+      <rect x="21" y="28" width="14" height="7"  fill="#C0392B"/>
+      <rect x="0"  y="35" width="56" height="7"  fill="#E36AA8"/>
       <rect x="7"  y="42" width="42" height="14" fill="#E36AA8"/>
-      <rect x="56" y="28" width="7" height="7" fill="#FFDAB9"/>
-      <rect x="56" y="21" width="7" height="7" fill="#FFDAB9"/>
+      <rect x="56" y="28" width="7"  height="7"  fill="#FFDAB9"/>
+      <rect x="56" y="21" width="7"  height="7"  fill="#FFDAB9"/>
     </g>
-    <text x="798" y="360" text-anchor="middle" font-size="11" fill="#C73E80" font-weight="bold">katie ✨</text>
+    <text x="723" y="360" text-anchor="middle" font-size="11" fill="#C73E80" font-weight="bold">katie ✨</text>
   </g>
 
-  <!-- Sparkles -->
+  <!-- Omar character (waving) + label -->
+  <g class="anim p2-omar">
+    <g transform="translate(810,275)">
+      <rect x="14" y="0"  width="28" height="7"  fill="#1C1C1C"/>
+      <rect x="7"  y="7"  width="42" height="7"  fill="#1C1C1C"/>
+      <rect x="0"  y="14" width="7"  height="21" fill="#1C1C1C"/>
+      <rect x="49" y="14" width="7"  height="21" fill="#1C1C1C"/>
+      <rect x="7"  y="14" width="42" height="7"  fill="#F5C68C"/>
+      <rect x="7"  y="21" width="42" height="7"  fill="#F5C68C"/>
+      <rect x="14" y="21" width="7"  height="7"  fill="#333"/>
+      <rect x="35" y="21" width="7"  height="7"  fill="#333"/>
+      <rect x="7"  y="28" width="42" height="7"  fill="#F5C68C"/>
+      <rect x="21" y="28" width="14" height="7"  fill="#7B4F2A"/>
+      <rect x="0"  y="35" width="56" height="7"  fill="#38B2AC"/>
+      <rect x="7"  y="42" width="42" height="14" fill="#38B2AC"/>
+      <rect x="56" y="28" width="7"  height="7"  fill="#F5C68C"/>
+      <rect x="56" y="21" width="7"  height="7"  fill="#F5C68C"/>
+    </g>
+    <text x="838" y="360" text-anchor="middle" font-size="11" fill="#0D9488" font-weight="bold">omar ✨</text>
+  </g>
+
+  <!-- Sparkles — Katie -->
   <g class="anim p2-sparkle1" fill="#FFD700">
-    <rect x="844" y="280" width="3" height="3"/>
-    <rect x="841" y="283" width="3" height="3"/>
-    <rect x="847" y="283" width="3" height="3"/>
-    <rect x="844" y="286" width="3" height="3"/>
+    <rect x="762" y="280" width="3" height="3"/>
+    <rect x="759" y="283" width="3" height="3"/>
+    <rect x="765" y="283" width="3" height="3"/>
+    <rect x="762" y="286" width="3" height="3"/>
   </g>
   <g class="anim p2-sparkle2" fill="#FFD700">
-    <rect x="755" y="305" width="3" height="3"/>
-    <rect x="752" y="308" width="3" height="3"/>
-    <rect x="758" y="308" width="3" height="3"/>
-    <rect x="755" y="311" width="3" height="3"/>
+    <rect x="678" y="305" width="3" height="3"/>
+    <rect x="675" y="308" width="3" height="3"/>
+    <rect x="681" y="308" width="3" height="3"/>
+    <rect x="678" y="311" width="3" height="3"/>
   </g>
   <g class="anim p2-sparkle3" fill="#FFD700">
-    <rect x="855" y="320" width="3" height="3"/>
-    <rect x="852" y="323" width="3" height="3"/>
-    <rect x="858" y="323" width="3" height="3"/>
-    <rect x="855" y="326" width="3" height="3"/>
+    <rect x="755" y="320" width="3" height="3"/>
+    <rect x="752" y="323" width="3" height="3"/>
+    <rect x="758" y="323" width="3" height="3"/>
+    <rect x="755" y="326" width="3" height="3"/>
+  </g>
+  <!-- Sparkles — Omar -->
+  <g class="anim p2-sparkle4" fill="#FFD700">
+    <rect x="876" y="280" width="3" height="3"/>
+    <rect x="873" y="283" width="3" height="3"/>
+    <rect x="879" y="283" width="3" height="3"/>
+    <rect x="876" y="286" width="3" height="3"/>
+  </g>
+  <g class="anim p2-sparkle5" fill="#FFD700">
+    <rect x="868" y="320" width="3" height="3"/>
+    <rect x="865" y="323" width="3" height="3"/>
+    <rect x="871" y="323" width="3" height="3"/>
+    <rect x="868" y="326" width="3" height="3"/>
   </g>
 
   <!-- Footer caption -->
-  <text class="anim footer-cap" x="460" y="408" text-anchor="middle" font-size="10" fill="#888" font-style="italic">same chunking + stitching algorithm under the hood — katie wrapped it in a server so you never have to click "download" again</text>
+  <text class="anim footer-cap" x="460" y="408" text-anchor="middle" font-size="10" fill="#888" font-style="italic">same algorithm under the hood — katie built the scheduled pipeline · omar added related queries · no more clicking download</text>
 </svg>
